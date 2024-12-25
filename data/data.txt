@@ -1,0 +1,4 @@
+RockPaperScissors Simulator
+One Shot
+v0.0.6
+25/12/2024
