@@ -1,62 +1,66 @@
-from math import *
+from math import inf, sqrt
 from random import *
 from time import time, sleep
 from entity import Entity
+from textmanager import TextManager
+from collections import defaultdict
+from pathlib import Path
 import pygame
+import os
 
 
-# Draw a long text in a box (then add scrolling function in test2.py)
-def draw_text_in_box(screen, box_rect, text, font, text_color, box_color):
-    pygame.draw.rect(screen, box_color, box_rect)
-
-    max_width = box_rect.width * 0.9
-    words = text.split()
-    lines = []
-    current_line = ""
-
-    for word in words:
-        test_line = current_line + (" " if current_line else "") + word
-        if font.size(test_line)[0] <= max_width:
-            current_line = test_line
-        else:
-            lines.append(current_line)  # Ajouter la ligne complète
-            current_line = word  # Commencer une nouvelle ligne
-
-    if current_line:                                                            # Add last line
-        lines.append(current_line)
-
-    # Dessiner chaque ligne de texte, centrée dans la boîte
-    # 'Tg' : in order to mesure full height of font with uppercase and low char like 'g' or 'y'
-    total_text_height = len(lines) * font.size("Tg")[1]                         # Hauteur totale du texte
-    start_y = box_rect.top + (box_rect.height - total_text_height) // 2         # Point de départ vertical
-
-    for i, line in enumerate(lines):
-        line_surface = font.render(line, True, text_color)
-        line_width, line_height = line_surface.get_size()
-        x = box_rect.left + (box_rect.width - line_width) // 2                  # Centrer horizontalement
-        y = start_y + i * line_height                                           # Ajuster verticalement
-        screen.blit(line_surface, (x, y))
-
-
-def test(*args):
+def test1(*args):
+    # Initialisation
     pygame.init()
-    screen = pygame.display.set_mode((600, 400))
-    font = pygame.font.Font(None, 36)  # Police par défaut avec taille 36
-    text = "Ceci est un texte très long qui doit être divisé en plusieurs lignes si nécessaire."
+    screen_size = (800, 600)
+    screen = pygame.display.set_mode(screen_size)
+    pygame.display.set_caption("Scrollable Text Test")
+
+    text_manager = TextManager(screen_size)
+
+    pos = (50, 50, 700, 500)  # x, y, width, height for the text box
+    text = "\n".join([f"Line {i + 1}" for i in range(50)])  # Example text with 50 lines
+
+    # Boucle principale
     running = True
-
     while running:
-        screen.fill((30, 30, 30))  # Fond gris foncé
+        screen.fill("lightgrey")
+        event = None
 
-        box = pygame.Rect(150, 100, 300, 200)                                   # Définir une boîte
-        draw_text_in_box(screen, box, text, font, (255, 255, 255), (50, 50, 200))
+        # Draw the border of the text box
+        pygame.draw.rect(screen, "grey", pos)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
+        # Display the scrollable text
+        text_manager.display_scrollable_text(screen, pos, text, event)
+
         pygame.display.flip()
+
     pygame.quit()
+
+
+def test2(*args):
+    percent = 0
+    for i in range(10000):
+        percent = randint(50000, 100000) // (i + 1)
+    print(percent)
+
+
+def time_function(func, *args):                                                 # Mesure du temps d'exécution
+    start_time = time()
+    func(*args)
+    end_time = time()
+    elapsed_time = end_time - start_time
+    print(f"Temps d'exécution de {func.__name__}: {elapsed_time:.10f} secondes")
+    return elapsed_time
+
+
+def test():
+    time_test1 = time_function(test1)
+    # time_test2 = time_function(test2)
 
 
 if __name__ == "__main__":
