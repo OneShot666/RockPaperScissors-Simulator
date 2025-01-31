@@ -6,7 +6,6 @@ from collections import defaultdict
 # import pygame
 
 
-# ! Parameter is_entity_range is not use yet
 class EntityManager:
     def __init__(self, screen_size, nb_entities=100, balanced=True):
         # Booleans

@@ -36,8 +36,10 @@ class TimerManager:                                                             
             self.duration = max(self.min_duration, self.duration)
 
     def get_elapsed_time(self, current_time):                                   # Return time since timer start (in sec)
-        result = (self.pause_time if self.is_paused_flag else current_time) - self.start_time - self.total_pause_duration
-        return round(result, 1)
+        if self.start_time is not None:
+            result = (self.pause_time if self.is_paused_flag else current_time) - self.start_time - self.total_pause_duration
+            return round(result, 1)
+        return -1
 
     def get_total_pause_duration(self):                                         # Return total time of pause
         return self.total_pause_duration
@@ -52,7 +54,7 @@ class TimerManager:                                                             
         self.pause_time = None
         self.total_pause_duration = 0
 
-    def reset(self, current_time):                                              # Restart loop
+    def reset(self, current_time):                                              # Restart loop (doesn't reset nb of loop)
         self.is_paused_flag = False
         self.start_time = current_time
         self.pause_time = None
