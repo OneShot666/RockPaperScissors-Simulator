@@ -1,26 +1,26 @@
 from math import inf, sqrt
-from random import *
-from time import *
+from random import randint
+# from time import *
+from timermanager import TimerManager
 import pygame
 
 
-# ? Make GameManager() class to manage args : screen_size, is_map_borders=False, is_infinity_map=False
-# ? or EntityManager()
 class Entity:                                                                   # Common class for entities in the game
-    def __init__(self, id_value, name, coords=None, image=None, speed=1, range_value=100, smart=False):
+    def __init__(self, id_value, name, coords=None, image=None, speed=1, range_value=100, size=30, smart=False):
         self.is_smart = smart
         self.id = id_value                                                      # [later] Use to distinguish entities
         self.name = "paper" if name is None or name == "" else name
-        self.size = 30
+        self.speed = speed                                                      # Speed on screen
         self.range = range_value                                                # Perception of other entities
-        self.speed = speed
+        self.size = size                                                        # Image's size
         self.coords = [0, 0] if coords is None else coords
-        # ! Change code and use rect.center for get_distance
+        # ? Change code and use rect.center for get_distance
         self.image = self.get_image(image)
         self.predator_name = self.get_predator_name()
         self.predator: Entity = None
         self.target_name = self.get_target_name()
         self.target: Entity = None
+        self.timer_mutation = TimerManager(1.5)                                 # Time while showing notif to mutation
         self.behaviour = "Nothing"                                              # What entity currently doing
 
     def __repr__(self):                                                         # Not use yet
@@ -144,34 +144,45 @@ class Entity:                                                                   
     # [later] Will separate in two groups to take targets in sandwich -> make EntityManager class ?
     # [later] Group will form a line to stuck target in a corner when map has borders
     def move_smart(self, Entities, screen_size=None, is_map_borders=False, is_infinity_map=False):
-        print("Moving start : ", end=" ")                                       # !!!
+        testing = False
+        if testing:
+            print("Moving start :", end=" ")                                    # !!!
         if self.target and self.target.coords[0] is not None:                   # At least one target
-            print("Pursue target condition ", end=" ")                          # !!!
+            if testing:
+                print("Pursue target condition", end=" ")                       # !!!
             if is_map_borders:                                                  # ! Not opti
                 self.pursue_target(screen_size, is_map_borders, is_infinity_map)
-                print("1", end=", ")                                            # !!!
+                if testing:
+                    print("1", end=", ")                                        # !!!
             elif is_infinity_map:                                               # ! Not opti
                 self.pursue_target(screen_size, is_map_borders, is_infinity_map)
-                print("2", end=", ")                                            # !!!
+                if testing:
+                    print("2", end=", ")                                        # !!!
             else:
                 self.pursue_target(screen_size, is_map_borders, is_infinity_map)
-                print("3", end=", ")                                            # !!!
+                if testing:
+                    print("3", end=", ")                                        # !!!
         elif self.predator and self.predator.coords[0] is not None:             # At least one predator
-            print("Flee predator condition ", end=" ")                          # !!!
+            if testing:
+                print("Flee predator condition ", end=" ")                      # !!!
             if is_map_borders:                                                  # ! Not opti
                 self.flee_predator(screen_size, is_map_borders, is_infinity_map)
-                print("1", end=", ")                                            # !!!
+                if testing:
+                    print("1", end=", ")                                        # !!!
             elif is_infinity_map:
                 coords = self.get_farthest_point(screen_size)
                 self.move_to_coords(coords, screen_size, is_map_borders, is_infinity_map)
                 self.behaviour = f"Fleeing predator ({self.predator.id})"
-                print("2", end=", ")                                            # !!!
+                if testing:
+                    print("2", end=", ")                                        # !!!
             else:
                 self.flee_predator(screen_size, is_map_borders, is_infinity_map)
-                print("3", end=", ")                                            # !!!
+                if testing:
+                    print("3", end=", ")                                        # !!!
         else:
             self.move_randomly(3)                                               # Move faster if smart (why ? -> because)
-        print("end")                                                            # !!!
+        if testing:
+            print("end")                                                        # !!!
 
     # Manager movements of entity
     def move(self, Entities, screen_size=None, is_map_borders=False, is_infinity_map=False, is_range=False):
@@ -218,8 +229,8 @@ class Entity:                                                                   
         self.behaviour = "Moving randomly"
 
     # ? Pb is here
-    def change_type(self):                                                      # Change type of entity (when beaten)
-        self.name = self.get_predator_name()
+    def change_type(self, name=None):                                           # Change type of entity (when beaten)
+        self.name = name if name else self.get_predator_name()
         self.image = self.get_image()
         self.predator_name = self.get_predator_name()
         self.target_name = self.get_target_name()

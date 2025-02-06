@@ -100,7 +100,7 @@ class TextManager:
             screen.blit(line_surface, (x, y))
 
     def display_message(self, screen, percent_x=0.5, percent_y=0.5, message="",
-    font_size=None, position=None, percent_size=None):                          # Display message on screen
+    font_size=None, position=None, percent_size=None, get_pos_only=False):      # Display message on screen
         if font_size is not None:                                               # Change font size if a new one is required
             self.set_font_size(self.FontSizes[font_size])
 
@@ -121,12 +121,15 @@ class TextManager:
                 coords[0] = int(coords[0] - size[0] * 0.5)
                 coords[1] = int(coords[1] - size[1] * 0.5)
 
-            screen.blit(text, coords)
+            if not get_pos_only:
+                screen.blit(text, coords)
+
             return [coords[0], coords[1], size[0], size[1]]                     # Return pos of button
         else:
             pos = [int(self.screen_size[0] * percent_x), int(self.screen_size[1] * percent_y),
                    int(self.screen_size[0] * percent_size[0]), int(self.screen_size[1] * percent_size[1])]
-            self.display_large_text(screen, pos, message)
+            if not get_pos_only:
+                self.display_large_text(screen, pos, message)
 
             return pos
 
@@ -134,6 +137,7 @@ class TextManager:
         self.set_font_color("grey")
         self.display_message(screen, message=name, font_size="giant")
         self.set_font_color()                                                   # Default color
+        self.set_font_size()                                                    # Default size
 
     def display_screen(self, screen, pos, bg_color=None, border_width=None, border_radius=None):
         if bg_color is None:
@@ -163,7 +167,7 @@ class TextManager:
 
         self.display_screen(screen, pos_b, color, border_radius=10)
         self.display_message(screen, pos_b[0] / self.screen_size[0] + b_p[0],
-                             pos_b[1] / self.screen_size[1] + b_p[1], active, position='left')
+            pos_b[1] / self.screen_size[1] + b_p[1], active, position='left')
 
         self.set_font_color()                                                   # Go back to default color
 
@@ -183,11 +187,19 @@ class TextManager:
 
             gap = 5
             coords = ((mouse[0] + 12) / self.screen_size[0], mouse[1] / self.screen_size[1])
-            pos_m = self.display_message(screen, *coords, self.description, position='left')  # Display it before to get position
+            pos_m = self.display_message(screen, *coords, self.description,
+                position='left', get_pos_only=True)                             # Called it before to get position
             pos_m = (pos_m[0] - gap, pos_m[1] - gap, pos_m[2] + gap * 2, pos_m[3] + gap * 2)
 
+            percent_size = None
+            if self.screen_size[0] <= pos_m[0] + pos_m[2]:                      # If text too long
+                percent_size = [(self.screen_size[0] - pos_m[0] - gap * 2) / self.screen_size[0],
+                                (pos_m[3] * 2) / self.screen_size[1]]
+                pos_m = self.display_message(screen, *coords, self.description,
+                    position='left', percent_size=percent_size, get_pos_only=True)  # Recalculate bg size
+
             self.display_screen(screen, pos_m, border_width=2, border_radius=5)
-            self.display_message(screen, *coords, self.description, position='left')
+            self.display_message(screen, *coords, self.description, position='left', percent_size=percent_size)
 
             self.set_font_size()
             self.description = None                                             # Reset description

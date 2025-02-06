@@ -17,10 +17,6 @@ import os
 # . Upgrade ProjectMaker functions before starting new projects (below)
 # . Make GraphicalDance (just do pretty clicker: points turning around circle and merging)
 
-# ... Look for sounds online (beaten, spawn)
-# . Look for chill music online
-# . Add SoundManager class + had sounds and music
-# . Add mutation parameter + function in EntityManager
 # . Upgrade flee method -> Entities movements are weird because of furthest point ?
 
 
@@ -34,22 +30,22 @@ import os
 # [v0.0.8] Add pause screen + key shortcuts + make entity with no target flee enemy
 # [v0.0.9] Add lots of options for simulations (map borders, inf map, smart, follow mouse, appear with click)
 # [v0.1.0] Add range for entity (detection for target and predator) + add overlay for entities
-# [v0.1.1] Add menus + end of simulation if only one type remaining -> add auto-end parameter
-# ... [v0.1.2] Add sounds + chill music + mutation option (can change type randomly) -> create soundmanager class
-# ! [v0.1.3] Add graphics + saves result + scoreboard -> create datamanager class (+ take screenshots each turn ?)
-# ! [v0.1.4] Add possibility to add more entity type (Sheldon rps)
+# [v0.1.1] Add menus + end of simulation if only one type remaining -> add auto_end parameter
+# [v0.1.2] Add sounds + chill music + mutation option (can change type randomly) -> create soundmanager class
+# ... [v0.1.3] Add graphics + saves result + scoreboard -> create datamanager class (+ take screenshots each turn ?)
+# ! [v0.1.4] Add possibility to add more entity type (Sheldon rps) -> add Sheldon parameter
 # ! [v0.9.9] Make documentations and complete functions description (purpose, args descr, args type)
 # ! [v1.0.0] Make the code into a .exe -> create executioner class
 class RPSSimulator:                                                             # Main class
     def __init__(self, name=None):
         self.name = self.get_project_name(name)                                 # Get name of the game/program
         self.creator = "One Shot"
-        self.version = "v0.1.1"
-        self.birthday: str = None   # "15/10/2024"                              # Day of creation
+        self.version = "v0.1.2"
+        self.birthday: str = None                                               # Day of creation (15/10/2024)
         # Initializers
         pygame.init()
         pygame.display.init()
-        pygame.mixer.init()
+        # pygame.mixer.init()                                                   # Already in SoundManager
         pygame.font.init()
         # Booleans data
         self.running =          True                                            # Program running
@@ -87,6 +83,7 @@ class RPSSimulator:                                                             
         self.EntityManager = EntityManager(self.screen_size)
         self.EntityColors = {"rock": self.Colors["grey"], "paper": self.Colors["wheat"],
                              "scissors": self.Colors["red"]}
+        self.Mutated_Entities = []                                              # Last entities to have mutated
         # Parameters data
         self.icon_size = 50
         self.icon_parameter = pygame.image.load(f"images/parameter.png").convert_alpha()
@@ -104,10 +101,6 @@ class RPSSimulator:                                                             
         self.timer_entity_infos =   TimerManager(3)                             # Timer more infos is display : 3s
         self.timer_turn =           TimerManager(0, 0, 10)                      # Manage turn duration
         self.timer_one_sec =        TimerManager(1)                             # A timer that last one second
-        # Sounds data
-        self.volume = 0.5
-        self.Sounds = []
-        self.sound1: pygame.mixer.Sound = None
         # Main function
         self.first_launch_game()
         self.run()
@@ -153,12 +146,6 @@ class RPSSimulator:                                                             
             font_path = None
         self.main_font = pygame.font.Font(font_path, 80)
 
-        # Fill game sounds
-        self.Sounds = [_ for _ in os.listdir(f"{self.path}/sounds") if _.endswith(".mp3")]
-        if len(self.Sounds) > 0:
-            self.sound1 = pygame.mixer.Sound(f"{self.path}/sounds/{self.Sounds[0]}.mp3")
-            self.sound1.set_volume(self.volume)
-
     def save_game_data(self):                                                   # Write most of the game data
         with open(f"{self.path}/data/data.txt", 'w') as file:
             file.write(self.name + "\n")
@@ -190,6 +177,8 @@ class RPSSimulator:                                                             
         return not self.get_mouse_hover_position(pos) and self.left_click
 
     def run(self):                                                              # Main function
+        self.EntityManager.SoundManager.play_music()                            # Play random music
+
         while self.running:                                                     # While playing
             self.current_time = time()
             self.pressed = pygame.key.get_pressed()
@@ -254,8 +243,6 @@ class RPSSimulator:                                                             
             if self.simulating and not self.pausing:
                 self.timer_turn.check_loop_end(self.current_time)
 
-            self.check_end_simulation()
-
             pygame.display.flip()                                               # Update window
             self.horloge.tick(self.fps)
 
@@ -281,8 +268,12 @@ class RPSSimulator:                                                             
             if self.pausing:                                                    # Display in front of almost everything...
                 self.display_pause()
             else:
-                self.EntityManager.move_entities(self.screen_size, self.mouse,
+                self.Mutated_Entities += self.EntityManager.move_entities(self.screen_size, self.mouse,
                     self.ParametersManager.is_map_borders, self.ParametersManager.is_infinity_map)
+
+                self.display_mutated_entities()
+
+        self.check_end_simulation()                                             # Display if only one type of entity remain
 
         if self.parametering:                                                   # ...except for parameters menu...
             self.display_parameters_screen()
@@ -412,8 +403,7 @@ class RPSSimulator:                                                             
             for predator in self.EntityManager.Entities:
                 if predator == entity.predator:
                     center = predator.image.get_rect(topleft=predator.coords).center
-                    pygame.draw.circle(self.screen, self.Colors["yellow"],
-                                       center, predator.size + 5, 5)
+                    pygame.draw.circle(self.screen, self.Colors["yellow"], center, predator.size + 5, 5)
 
     def display_ui(self):                                                       # Data of simulation
         # Display number of entities in simulation (up left corner)
@@ -481,6 +471,25 @@ class RPSSimulator:                                                             
             self.open_parameter()
             self.left_click = False
 
+    def display_mutated_entities(self):                                         # Display all mutated entity for one turn
+        if len(self.Mutated_Entities) > 0:                                      # If at least one entity have mutated
+            for entity in self.Mutated_Entities:
+                if entity.timer_mutation.get_paused():
+                    entity.timer_mutation.start(self.current_time)
+                is_loop = entity.timer_mutation.check_loop_end(self.current_time)
+
+                if is_loop == 1:                                                # Remove entity when timer has loop
+                    entity.timer_mutation.start(self.current_time)              # Reset timer
+                    entity.timer_mutation.pause(self.current_time)
+                    self.Mutated_Entities.remove(entity)
+                else:                                                           # If timer started
+                    percent_x = entity.coords[0] / self.screen_size[0]
+                    percent_y = entity.coords[1] / self.screen_size[1]
+
+                    self.TextManager.set_font_color("blue")
+                    self.TextManager.display_message(self.screen, percent_x, percent_y, f"Mutated ({entity.id})")
+                    self.TextManager.set_font_color()
+
     def display_parameters_screen(self):                                        # Display all parameter screens
         pos = self.TextManager.display_box(self.screen)
         if self.get_not_click_on_position(pos):
@@ -537,18 +546,22 @@ class RPSSimulator:                                                             
 
         # First column
         x1 = 0.15
+
+        unactive_color = next((k for k, v in self.Colors.items() if v == self.borders_color), None)
+        self.TextManager.set_font_color(unactive_color)                         # [later] Remove when function is implemented
         self.ParametersManager.is_fullscreen, _ = self.TextManager.display_parameter(*trio,
             x1, 0.3, self.ParametersManager.is_fullscreen, "Fullscreen : ")
 
+        rect = [x1, 0.35, 0.025, 0.04]
+        func1 = self.reduce_gamma
+        func2 = self.increase_gamma
         nb = self.gamma
-        self.TextManager.display_message(self.screen, x1, 0.35, f"Gamma : {nb}", "middle", "left")
-        if self.TextManager.display_button(*trio, "-", (0.35, 0.35, 0.025, 0.04), "lightgrey", True) and nb > 0:
-            self.gamma -= 1
-        if self.TextManager.display_button(*trio, "+", (0.4, 0.35, 0.025, 0.04), "lightgrey", True) and nb < 100:
-            self.gamma += 1
-        percent = (nb / 100) * (self.screen_size[0] * 0.28)
-        pos = (self.screen_size[0] * x1, self.screen_size[1] * 0.4, percent, 10)
-        pygame.draw.rect(self.screen, self.borders_color, pos, border_radius=int(pos[3] * 0.5))
+        nb_max = 100
+        self.TextManager.set_font_color(unactive_color)                         # [later] Remove when function is implemented
+        result = self.display_gradient_line(rect, func1, func2, f"Gamma : {nb}", nb, nb_max)
+        self.TextManager.set_font_color()
+        if result:
+            self.gamma = result
 
         # Second column
         x2 = 0.5
@@ -560,19 +573,26 @@ class RPSSimulator:                                                             
 
         # First column
         x1 = 0.15
+
+        unactive_color = next((k for k, v in self.Colors.items() if v == self.borders_color), None)
+        if self.ParametersManager.is_ui_hide:
+            self.TextManager.set_font_color(unactive_color)
         self.ParametersManager.is_display_turn, _ = self.TextManager.display_parameter(*trio,
             x1, 0.3, self.ParametersManager.is_display_turn, "Display number of turns : ")
+
         if self.ParametersManager.is_display_turn:                              # Select pause for each turn
-            s = "s" if self.timer_turn.duration > 1 else ""
-            self.TextManager.display_message(self.screen, x1, 0.35,
-                f"Turn pause : {self.timer_turn.duration} sec{s}", "middle", "left")
-            if self.TextManager.display_button(*trio, "-", (0.35, 0.35, 0.025, 0.04), "lightgrey", True):
-                self.timer_turn.reduce_duration()
-            if self.TextManager.display_button(*trio, "+", (0.4, 0.35, 0.025, 0.04), "lightgrey", True):
-                self.timer_turn.increase_duration()
-            percent = (self.timer_turn.duration / self.timer_turn.max_duration) * (self.screen_size[0] * 0.28)
-            pos = (self.screen_size[0] * x1, self.screen_size[1] * 0.4, percent, 10)
-            pygame.draw.rect(self.screen, self.borders_color, pos, border_radius=int(pos[3] * 0.5))
+            if self.ParametersManager.is_ui_hide:
+                self.TextManager.set_font_color(unactive_color)
+            rect = [x1, 0.35, 0.025, 0.04]
+            func1 = self.timer_turn.reduce_duration
+            func2 = self.timer_turn.increase_duration
+            nb = self.timer_turn.duration
+            s = "s" if nb > 1 else ""
+            text = f"Turn pause : {nb} sec{s}"
+            nb_max = self.timer_turn.max_duration
+            result = self.display_gradient_line(rect, func1, func2, text, nb, nb_max)
+            if result:
+                self.timer_turn.set_duration(result)
 
         descr = ("When on, forbid entities to exit screen.\n"
                  "Incompatible with 'Screen is toroidal'")
@@ -590,10 +610,15 @@ class RPSSimulator:                                                             
 
         # Second column
         x2 = 0.5
+
+        if self.ParametersManager.is_ui_hide:
+            self.TextManager.set_font_color(unactive_color)
         descr = "When on, display quantity of entity in percent amount"
         self.ParametersManager.is_nb_in_percent, _ = self.TextManager.display_parameter(*trio,
             x2, 0.3, self.ParametersManager.is_nb_in_percent, "Quantity is in percent : ", descr)
 
+        if self.ParametersManager.is_ui_hide:
+            self.TextManager.set_font_color(unactive_color)
         descr = "When on, display ui in front of entities. When off, display it behind"
         self.ParametersManager.is_ui_on_front, _ = self.TextManager.display_parameter(*trio,
             x2, 0.37, self.ParametersManager.is_ui_on_front, "UI is on front : ", descr)
@@ -611,21 +636,25 @@ class RPSSimulator:                                                             
 
         # First column
         x1 = 0.15
+
+        unactive_color = next((k for k, v in self.Colors.items() if v == self.borders_color), None)
+        if self.EntityManager.nb_entities <= 0:
+            self.TextManager.set_font_color(unactive_color)
         descr = "When on, will generate the same amount of entities for each types (ish)"
         self.EntityManager.balanced, _ = self.TextManager.display_parameter(*trio,
             x1, 0.3, self.EntityManager.balanced, "Balanced : ", descr)
 
+        rect = [x1, 0.35, 0.025, 0.04]
+        func1 = self.EntityManager.reduce_nb_entities
+        func2 = self.EntityManager.increase_nb_entities
         nb = self.EntityManager.nb_entities
         nb_max = self.EntityManager.nb_max
-        self.TextManager.display_message(self.screen, x1, 0.35, f"Quantity : {nb}", "middle", "left")
-        if self.TextManager.display_button(*trio, "-", (0.35, 0.35, 0.025, 0.04), "lightgrey", True) and nb > 0:
-            self.EntityManager.reduce_nb_entities()
-        if self.TextManager.display_button(*trio, "+", (0.4, 0.35, 0.025, 0.04), "lightgrey", True) and nb < nb_max:
-            self.EntityManager.increase_nb_entities()
-        percent = (nb / nb_max) * (self.screen_size[0] * 0.28)
-        pos = (self.screen_size[0] * x1, self.screen_size[1] * 0.4, percent, 10)
-        pygame.draw.rect(self.screen, self.borders_color, pos, border_radius=int(pos[3] * 0.5))
+        result = self.display_gradient_line(rect, func1, func2, f"Quantity : {nb}", nb, nb_max)
+        if result:
+            self.EntityManager.set_nb_entities(result)
 
+        if self.EntityManager.nb_entities <= 0:
+            self.TextManager.set_font_color(unactive_color)
         descr = "When on, entities will flee their predator when there is no target left"
         self.EntityManager.is_smart_entity, as_change = self.TextManager.display_parameter(*trio,
             x1, 0.45, self.EntityManager.is_smart_entity, "Entities are smart : ", descr)
@@ -635,14 +664,51 @@ class RPSSimulator:                                                             
             else:
                 self.EntityManager.make_entities_dumb()
 
-        radius = self.EntityManager.Entities[0].range if len(self.EntityManager.Entities) > 1 \
-            else Entity(0, None).range
+        if self.EntityManager.nb_entities <= 0:
+            self.TextManager.set_font_color(unactive_color)
+        radius = round(self.EntityManager.entity_range * (1.05 if self.EntityManager.is_smart_entity else 1), 2)
         descr = f"When on, entity can only detect peers within a given radius ({radius}px)"
         self.EntityManager.is_entity_range, _ = self.TextManager.display_parameter(*trio,
             x1, 0.51, self.EntityManager.is_entity_range, "Entity have range : ", descr)
 
+        if self.EntityManager.nb_entities <= 0:
+            self.TextManager.set_font_color(unactive_color)
+        rect = [x1, 0.58, 0.025, 0.04]
+        func1 = self.EntityManager.reduce_speed
+        func2 = self.EntityManager.increase_speed
+        nb = self.EntityManager.entity_speed
+        nb_max = self.EntityManager.max_entity_speed
+        result = self.display_gradient_line(rect, func1, func2, f"Speed : {nb}", nb, nb_max)
+        if result:
+            self.EntityManager.entity_speed = result
+
+        if self.EntityManager.nb_entities <= 0 or not self.EntityManager.is_entity_range:
+            self.TextManager.set_font_color(unactive_color)
+        rect = [x1, 0.68, 0.025, 0.04]
+        func1 = self.EntityManager.reduce_range
+        func2 = self.EntityManager.increase_range
+        nb = self.EntityManager.entity_range
+        nb_max = self.EntityManager.max_entity_range
+        result = self.display_gradient_line(rect, func1, func2, f"Range : {nb}", nb, nb_max)
+        if result:
+            self.EntityManager.entity_range = result
+
+        if self.EntityManager.nb_entities <= 0:
+            self.TextManager.set_font_color(unactive_color)
+        rect = [x1, 0.78, 0.025, 0.04]
+        func1 = self.EntityManager.reduce_size
+        func2 = self.EntityManager.increase_size
+        nb = self.EntityManager.entity_size
+        nb_max = self.EntityManager.max_entity_size
+        result = self.display_gradient_line(rect, func1, func2, f"Size : {nb}", nb, nb_max)
+        if result:
+            self.EntityManager.entity_size = result
+
         # Second column
         x2 = 0.5
+
+        if len(self.EntityManager.Entities) <= 0:
+            self.TextManager.set_font_color(unactive_color)
         descr = "When on, make selected entity type go to mouse coordinates"
         self.EntityManager.is_follow_mouse, _ = self.TextManager.display_parameter(*trio,
             x2, 0.3, self.EntityManager.is_follow_mouse, "Entities follow mouse : ", descr)
@@ -660,27 +726,117 @@ class RPSSimulator:                                                             
         if self.EntityManager.is_spawn_with_click:                              # Select entity to spawn
             text = f"Entity to spawn : {self.EntityManager.entity_to_spawn}"
             self.TextManager.display_message(self.screen, x2, 0.56, text, "middle", "left")
-            entity = self.display_entities_button(self.screen_size[0] * x2, self.screen_size[1] * 0.59,
+            entity = self.display_entities_button(self.screen_size[0] * x2, self.screen_size[1] * 0.61,
                 current_entity_name=self.EntityManager.entity_to_spawn)
             if entity is not None:
                 self.EntityManager.entity_to_spawn = entity
 
-    # !! Add function to set value on gradient line (+ implant it for nb turn and nb entity)
+        if self.EntityManager.nb_entities <= 0:
+            self.TextManager.set_font_color(unactive_color)
+        descr = "When on, entity can randomly change their speed, range, size, smartness or type"
+        self.EntityManager.is_mutating, _ = self.TextManager.display_parameter(*trio,
+            x2, 0.71, self.EntityManager.is_mutating, "Entity can mutate : ", descr)
+
+        if self.EntityManager.is_mutating:
+            if self.EntityManager.nb_entities <= 0:
+                self.TextManager.set_font_color(unactive_color)
+            rect = [x2, 0.78, 0.025, 0.04]
+            func1 = self.EntityManager.reduce_mutate_chance
+            func2 = self.EntityManager.increase_mutate_chance
+            nb = self.EntityManager.mutate_chance
+            nb_max = 100
+            result = self.display_gradient_line(rect, func1, func2, f"Mutation chance : {nb}%", nb, nb_max)
+            if result:
+                self.EntityManager.mutate_chance = result
+
+    # - next music button if endless music
     def display_tab_sounds_screen(self):                                        # Display sounds screen
-        self.TextManager.display_message(self.screen, 0.5, 0.5, "Work in progress...", "giant")
-        """
         trio = (self.screen, self.mouse, self.left_click)
+
         # First column
         x1 = 0.15
-        descr = f"volume 1"
-        self.sound1, _ = self.TextManager.display_parameter(*trio,
-            x1, 0.3, self.sound1, "Sound 1 : ", descr)
+
+        self.TextManager.set_font_color("lightgrey")
+        sound = self.EntityManager.SoundManager.sound_name
+        message = f"Playing '{sound.replace('.mp3', '')}'" if sound else "No sound"
+        self.TextManager.display_message(self.screen, x1, 0.3, message, position="left")
+        self.TextManager.set_font_color()
+
+        rect = [x1, 0.35, 0.025, 0.04]
+        func1 = self.EntityManager.SoundManager.reduce_volume
+        func2 = self.EntityManager.SoundManager.increase_volume
+        nb = self.EntityManager.SoundManager.sound_volume
+        result = self.display_gradient_line(rect, func1, func2, f"Sons : {int(nb * 100)}%", nb, 1)
+        if result:
+            self.EntityManager.SoundManager.set_volume(result)
+
+        if self.TextManager.display_button(*trio, "Mute all sounds",
+        (x1, 0.44, 0.15, 0.05), has_border=True, bg_color_hover="white"):
+            self.EntityManager.SoundManager.stop_all_sounds()
+
         # Second column
         x2 = 0.5
-        descr = f"volume 1"
-        self.sound1, _ = self.TextManager.display_parameter(*trio,
-            x2, 0.3, self.sound1, "Sound 1 : ", descr)
-        """
+
+        self.TextManager.set_font_color("lightgrey")
+        music = self.EntityManager.SoundManager.music_name
+        message = f"Playing '{music.replace('music - ', '').replace('.mp3', '')}'" if music else "No music"
+        self.TextManager.display_message(self.screen, x2, 0.3, message, position="left")
+        self.TextManager.set_font_color()
+
+        rect = [x2, 0.35, 0.025, 0.04]
+        func1 = self.EntityManager.SoundManager.reduce_music_volume
+        func2 = self.EntityManager.SoundManager.increase_music_volume
+        nb = self.EntityManager.SoundManager.music_volume
+        result = self.display_gradient_line(rect, func1, func2, f"Musique : {int(nb * 100)}%", nb, 1)
+        if result:
+            self.EntityManager.SoundManager.set_music_volume(result)
+
+        unactive_color = next((k for k, v in self.Colors.items() if v == self.borders_color), None)
+        if self.EntityManager.SoundManager.is_loop:
+            self.TextManager.set_font_color(unactive_color)
+        if self.TextManager.display_button(*trio, "Next music",
+        (x2, 0.44, 0.15, 0.05), has_border=True, bg_color_hover="white"):
+            self.EntityManager.SoundManager.play_music()
+        self.TextManager.set_font_color()
+
+        descr = "When on, play current music endlessly"
+        self.EntityManager.SoundManager.is_loop, _ = self.TextManager.display_parameter(*trio,
+            x2, 0.51, self.EntityManager.SoundManager.is_loop, "Endless music : ", descr)
+
+    def display_gradient_line(self, rect, func1, func2, title="Quantity", nb=50, nb_max=100, nb_min=0):
+        trio = (self.screen, self.mouse, self.left_click)
+        x1 = rect[0]
+
+        self.TextManager.display_message(self.screen, rect[0], rect[1], title, "middle", "left")
+        self.TextManager.set_font_color()
+        rect[0] += 0.2
+        if self.TextManager.display_button(*trio, "-", rect, "lightgrey", True) and nb > nb_min:
+            func1()
+        rect[0] += 0.05
+        if self.TextManager.display_button(*trio, "+", rect, "lightgrey", True) and nb < nb_max:
+            func2()
+
+        rect[1] += 0.05
+        new_nb = None
+        pos = [self.screen_size[0] * x1, self.screen_size[1] * rect[1], self.screen_size[0] * 0.28, 10]
+        pygame.draw.rect(self.screen, self.bg_color, pos, border_radius=int(pos[3] * 0.5))
+        if self.get_click_on_position(pos):
+            length = max(nb_min, abs(self.mouse[0] + 3 - pos[0]))               # '+3' to adjust final position
+            new_nb = (length / pos[2]) * nb_max
+            new_nb = int(new_nb) if nb_max > 1 else round(new_nb, 2)
+
+        pos[2] = (nb / nb_max) * pos[2]                                         # Current percent
+        pygame.draw.rect(self.screen, self.borders_color, pos, border_radius=int(pos[3] * 0.5))
+
+        return new_nb
+
+    def increase_gamma(self):                                                   # Increase and check gamma value
+        self.gamma += 1
+        self.gamma = min(self.gamma, 100)
+
+    def reduce_gamma(self):                                                     # Reduce and check gamma value
+        self.gamma -= 1
+        self.gamma = max(self.gamma, 0)
 
     # Buttons with image of each entity
     def display_entities_button(self, x, y, image_size=50, gap=10, current_entity_name=None):
@@ -707,21 +863,13 @@ class RPSSimulator:                                                             
                 message = f"The entities '{list(Entities.keys())[0].capitalize()}' have dominated other entities !"
                 self.TextManager.display_message(self.screen, 0.5, 0.2, message, "middle", "center")
 
-                if not self.ParametersManager.is_auto_end:
+                if self.ParametersManager.is_auto_end:
                     message = f"Click to close the simulation"
                     self.TextManager.display_message(self.screen, 0.5, 0.3, message, "small", "center")
 
-                if self.timer_one_sec.get_elapsed_time(self.current_time) < 0:  # If timer haven't change
-                    self.timer_one_sec.start(self.current_time)
-
-            if not self.timer_one_sec.get_paused():                             # After the loop end
-                if self.ParametersManager.is_auto_end or (self.left_click and not self.pausing):
-                    self.timer_one_sec.pause(self.current_time)
-                    self.timer_one_sec.start_time = None                        # Total reset (don't use elsewhere)
-                    if self.ParametersManager.is_auto_end:                      # Display message and make a quick pause
-                        pygame.display.flip()
-                        pygame.time.wait(2000)
-                    self.go_to_menu()
+                    if self.left_click and not (self.pausing or self.parametering or
+                    self.asking_restart or self.asking_goback):
+                        self.go_to_menu()
 
     def go_to_menu(self):                                                       # Go back to menu
         self.simulating = False
@@ -735,6 +883,7 @@ class RPSSimulator:                                                             
         self.asking_goback = False
         self.pausing = False
         self.EntityManager.create_entities()
+        self.Mutated_Entities = []
         self.timer_simulation.start(self.current_time)
         if self.timer_turn.duration > 0:
             self.timer_turn.start(self.current_time)
