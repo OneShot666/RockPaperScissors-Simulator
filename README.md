@@ -4,6 +4,8 @@ A simulation about the game 'Rock Paper Scissors'.
 You can bet with your friends who will win the eternal battle between those 3 objects !
 Or you can use this program as a real agent-based modeling and personalize your simulation.
 
+_[Pictures will be added with the next update]_
+
 ![Menu](images/screenshots/main_menu.png)
 
 ***
@@ -231,4 +233,4 @@ Saves menu :
 ***
 **Contact : mir.nathan666@gmail.com**
 
-Feel free to share your exprerience and your suggestions !
+Feel free to share your experience and your suggestions !
