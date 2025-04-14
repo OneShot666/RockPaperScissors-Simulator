@@ -70,7 +70,7 @@ Main menu :
 
 Simulation : 
 - [H]       "Hide/Show UI" (parameter) : Will hide or show interfaces.
-![Game (without UI)](images/screenshots/game_(hidden_UI).png)
+![Game (without UI)](images/screenshots/game_hidden_UI.png)
 - [R]       "Restart" : Will launch another simulation.
 - [SPACE]   "Pause" : Pause simulation and show the pause screen. 
 - [S]       "Save menu" (floppy disk icon) : Open the saves menu.
@@ -105,7 +105,7 @@ Settings menu : click on the tabs to open them
     - "UI is on front" : When on, display the interface above entities. When off, display it behind.
     - "UI is hide" : When on, won't show the interface.
     - "Auto end" : When on, simulation will close if only one type of entity remains. Will display a message when it's the case.
-![Game (end)](images/screenshots/game_(end).png)
+![Game (end)](images/screenshots/game_end.png)
     - "Auto play" : When on, on the saves menu on the simulation tab, will show each image of each turn for a second each (play as a gif).
     - "Auto save" : [In production] When on, will automatically save the current simulation when going back to the main menu.
 
