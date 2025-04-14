@@ -1,10 +1,23 @@
 # Rock Paper Scissors Simulator
 
 A simulation about the game 'Rock Paper Scissors'.
+You can bet with your friends who will win the eternal battle between those 3 objects !
+Or you can use this program as a real agent-based modeling and personalize your simulation.
+
+***
+## Rules : 
+- rule 1 : 
 
 ***
 ## Vocabulary : 
-- term : definition
+- Simulation : A simulated environnement with entities that can interact with it, with other entities or with themselves (mutation).
+  In this case, there is no environnement but the entities can 
+- Entity : definition
+- Mutation : definition
+- Turn : definition
+- Simulation : definition
+- Simulation : definition
+- Simulation : definition
 
 ***
 ## Prerequisites :
@@ -44,15 +57,25 @@ A simulation about the game 'Rock Paper Scissors'.
 Main menu : 
 - [SPACE]   "Start simulation" : Launch a new simulation (random placement of entities).
 - [P]       "Options" (toothed wheel icon) : Open the settings menu.
-- [ECHAP]   "Quit" (options) : Stop the program. Can auto-save the ongoing simulation if the parameter is active.
+- [ECHAP]   "Quit" (options) : Stop the program.
 - [S]       "Save menu" (floppy disk icon) : Open the saves menu.
 - .         "Help note" (question mark icon) : [In production] Open the help note menu.
 
 Simulation : 
-- "Play" (options) : result
-- "Play" (options) : result
-- "Play" (options) : result
-- "Play" (options) : result
+- [H]       "Hide/Show UI" (parameter) : Will hide or show interfaces.
+- [R]       "Restart" : Will launch another simulation.
+- [SPACE]   "Pause" : Pause simulation and show the pause screen. 
+- [S]       "Save menu" (floppy disk icon) : Open the saves menu.
+- [P]       "Parameters" (toothed wheel icon) : Open the settings menu.
+- [Q]       "Return to menu" (options) : Stop the program. Can auto-save the ongoing simulation if the parameter is active.
+- [ECHAP]   "Quit" (options) : Stop the program. Can auto-save the ongoing simulation if the parameter is active.
+- .         "Help note" (question mark icon) : [In production] Open the help note menu.
+- .         Entity data (mouse on entity) : Display a screen with all entity data and purpose.
+
+Pause : 
+- "Resume" : Resume the simulation.
+- "Options" : Open the settings menu.
+- "Menu" : Go back to menu (may show a warning screen before doing so).
 
 Settings menu : click on the tabs to open them
 - "Main" : Open the main tab.
@@ -126,7 +149,7 @@ Saves menu :
 ![name](link)
 
 ***
-## Roadmap (futurs majs + dates prévues)
+## Roadmap
 
 -Add previous version-
 - v0.1.3 : [In production]
