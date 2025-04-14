@@ -5,19 +5,23 @@ You can bet with your friends who will win the eternal battle between those 3 ob
 Or you can use this program as a real agent-based modeling and personalize your simulation.
 
 ***
-## Rules : 
-- rule 1 : 
+## Vocabulary : 
+- Simulation : A simulated environment with entities that can interact with it, with other entities or with themselves (mutation).
+  In this case, there is no environment but the entities can 
+- Entity : A thing that can move and interact with its environment or its peers.
+- Type of entity : Group with distinct attributes and/or appearance. Can be compared to a specie.
+- Mutation : An event that occur randomly to modify an entity's attribute (speed, range, size, etc).
+- Turn : An amount of time that have past.
+- Target : The type of entity an entity will earch, pursue and beat if catched.
+- Predator : The type of entity an entity will be beaten by if catch and flee if is smart.
+- Beat an entity : Transform it into its own type.
 
 ***
-## Vocabulary : 
-- Simulation : A simulated environnement with entities that can interact with it, with other entities or with themselves (mutation).
-  In this case, there is no environnement but the entities can 
-- Entity : definition
-- Mutation : definition
-- Turn : definition
-- Simulation : definition
-- Simulation : definition
-- Simulation : definition
+## Rules : 
+- Entities can beat other entities and be beaten respecting the following schema :
+  Rock < Paper < Scissors < Rock
+- Entities will automatically go to the closest target.
+- If the entity is smart and no target remains, it will flee its nearest predator. Else, it will randomly move.
 
 ***
 ## Prerequisites :
@@ -146,31 +150,72 @@ Saves menu :
     - "Delete all" : Delete all saves (not recommended).
 
 -Images-
-![name](link)
+![Entity infos](images/screenshots/RPS Simulator - name.png)
+![Game (end)](images/screenshots/RPS Simulator - name.png)
+![Game (without UI)](images/screenshots/RPS Simulator - name.png)
+![Game](images/screenshots/RPS Simulator - name.png)
+![Menu](images/screenshots/RPS Simulator - name.png)
+![Parameters - Entities](images/screenshots/RPS Simulator - name.png)
+![Parameters - Simulation](images/screenshots/RPS Simulator - name.png)
+![Parameters - Sounds](images/screenshots/RPS Simulator - name.png)
+![Pause](images/screenshots/RPS Simulator - name.png)
+![Saves - Graphics](images/screenshots/RPS Simulator - name.png)
+![Saves - Saves](images/screenshots/RPS Simulator - name.png)
+![Saves - Simulation](images/screenshots/RPS Simulator - name.png)
 
 ***
 ## Roadmap
 
--Add previous version-
+- v0.0.1 :
+	- Basic functions
+- v0.0.2 :
+	- Create class for entities
+- v0.0.3 :
+	- Add fonts
+ 	- Add images
+- v0.0.4 :
+	- Test and adjust entities
+- v0.0.5 :
+	- Avoid entities to move away from the map (add map borders)
+- v0.0.6 :
+	- Display data on screen
+ 	- Add percent bg for nb entity (add percent & quantity)
+- v0.0.7 :
+	- Make simulation personalized in game (add parameters)
+- v0.0.8 :
+	- Add pause screen
+ 	- Add key shortcuts
+  	- Make entity with no target flee enemy (add smartness)
+- v0.0.9 :
+	- Add options on parameters screen (map borders, inf map, smart, follow mouse, appear with click)
+- v0.1.0 :
+	- Add range for entity (detection for target and predator)
+ 	- Add overlay for entities (display most of data)
+- v0.1.1 :
+	- Add menus
+ 	- End of simulation if only one type remaining (add auto_end parameter)
+- v0.1.2 :
+	- Add sounds (chill music)
+ 	- Add mutation option (can also change type randomly)
 - v0.1.3 : [In production]
-    - Add graphics : Adding graphics to help undestand the simulation's evolution.
+	- Add graphics : Adding graphics to help undestand the simulation's evolution.
       [Later] Can save them.
-    - Saves result : Create a save with most of the simulation data
-    - Create datamanager : Added a class specialized for above features.
-    - Add save menu : Added a menu to display all saves and graphics.
-    - Take screenshots each turn : To have a visual aspect of the evolution during the simulation.
+	- Saves result : Create a save with most of the simulation data
+	- Create datamanager : Added a class specialized for above features.
+	- Add save menu : Added a menu to display all saves and graphics.
+	- Take screenshots each turn : To have a visual aspect of the evolution during the simulation.
       Added a tab in the saves menu and changed the format of saved screenshots (png to gif: take less place)
 - v0.1.4 : [Later]
-    - Add possibility to add more entity type : Add the Sheldon rps with Spock and Lizard.
+	- Add possibility to add more entity type : Add the Sheldon rps with Spock and Lizard.
 - v0.1.5 :  [Later]
-    - Add tutorial : Add tutorial for first launch to teach user all features.
-    - Add gamma : Make gamma work.
-    - Finish other small tasks : Fix small details or bugs.
+	- Add tutorial : Add tutorial for first launch to teach user all features.
+	- Add gamma : Make gamma work.
+	- Finish other small tasks : Fix small details or bugs.
 - v0.9.9 : [Later]
-    - Make documentations : Create a full documentation for the whole project.
-    - Complete functions description : Add a commentary with the purpose, args description and args type of each function.
+	- Make documentations : Create a full documentation for the whole project.
+	- Complete functions description : Add a commentary with the purpose, args description and args type of each function.
 - v1.0.0 : [Later]
-    - Make the code into a .exe : Will be easier to install and launch (hopefully python interpreter won't be needed anymore).
+	- Make the code into a .exe : Will be easier to install and launch (hopefully python interpreter won't be needed anymore).
 
 ***
 ## User license : GNU GPL v3
