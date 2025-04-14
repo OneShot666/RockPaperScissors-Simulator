@@ -4,6 +4,8 @@ A simulation about the game 'Rock Paper Scissors'.
 You can bet with your friends who will win the eternal battle between those 3 objects !
 Or you can use this program as a real agent-based modeling and personalize your simulation.
 
+![Menu](images/screenshots/main_menu.png)
+
 ***
 ## Vocabulary : 
 - Simulation : A simulated environment with entities that can interact with it, with other entities or with themselves (mutation).
@@ -61,12 +63,14 @@ Or you can use this program as a real agent-based modeling and personalize your 
 Main menu : 
 - [SPACE]   "Start simulation" : Launch a new simulation (random placement of entities).
 - [P]       "Options" (toothed wheel icon) : Open the settings menu.
+![Parameters - Entities](images/screenshots/parameters_entities.png)
 - [ECHAP]   "Quit" (options) : Stop the program.
 - [S]       "Save menu" (floppy disk icon) : Open the saves menu.
 - .         "Help note" (question mark icon) : [In production] Open the help note menu.
 
 Simulation : 
 - [H]       "Hide/Show UI" (parameter) : Will hide or show interfaces.
+![Game (without UI)](images/screenshots/game_(hidden_UI).png)
 - [R]       "Restart" : Will launch another simulation.
 - [SPACE]   "Pause" : Pause simulation and show the pause screen. 
 - [S]       "Save menu" (floppy disk icon) : Open the saves menu.
@@ -75,6 +79,8 @@ Simulation :
 - [ECHAP]   "Quit" (options) : Stop the program. Can auto-save the ongoing simulation if the parameter is active.
 - .         "Help note" (question mark icon) : [In production] Open the help note menu.
 - .         Entity data (mouse on entity) : Display a screen with all entity data and purpose.
+
+![Entity infos](images/screenshots/entity_infos.png)
 
 Pause : 
 - "Resume" : Resume the simulation.
@@ -85,6 +91,7 @@ Settings menu : click on the tabs to open them
 - "Main" : Open the main tab.
     - Fullscreen : [In production] When on, change the program to fullscreen size. When off, change it to half the size.
     - Gamma : [In production] Change the gamma (brightness) of the screen.
+
 - "Simulation" : Open the simulation tab.
     - "Display number of turns" : When on, will display the number of current turns of the simulation on the bottom middle of the screen.
         - "Turn pause" : Will go to the next turn every X second(s). If set to 0, will change every time the program loop.
@@ -98,8 +105,10 @@ Settings menu : click on the tabs to open them
     - "UI is on front" : When on, display the interface above entities. When off, display it behind.
     - "UI is hide" : When on, won't show the interface.
     - "Auto end" : When on, simulation will close if only one type of entity remains. Will display a message when it's the case.
+![Game (end)](images/screenshots/game_(end).png)
     - "Auto play" : When on, on the saves menu on the simulation tab, will show each image of each turn for a second each (play as a gif).
     - "Auto save" : [In production] When on, will automatically save the current simulation when going back to the main menu.
+
 - "Entities" : Open the entities tab.
     - "Balanced" : When on, will create the same amount of entity of each type. When off, entities will be randomly created.
     - "Quantity" : Can choose the number of entity created at the start of the simulation. Between 0 and 150.
@@ -115,7 +124,9 @@ Settings menu : click on the tabs to open them
         - "Entity to spawn" : The type of entity that will spawn.
     - "Entity can mutate" : When on, allow entity to randomly mutate (change an attribute of the entity).
         - "Mutation chance" : The chance for each entity to mutate each turn. Between 0 and 100.
+
 - "Sounds" : Open the sounds tab
+![Parameters - Sounds](images/screenshots/parameters_sounds.png)
     Display last played sound and current music name in lightgrey.
     - "Sounds" : Sound volume.  Between 0 and 100.
     - "Mute all sounds" : Will restart the sound manager and stop all playing sound. Click on it if a sound problem occurs.
@@ -125,13 +136,16 @@ Settings menu : click on the tabs to open them
 
 Saves menu : 
 - "Simulations" : Open the simulation tab.
+![Saves - Simulation](images/screenshots/saves_simulation.png)
     Display the first turn of the first simulation if their is any. Show a transparent message if not.
     - "Previous sim" : Show the previous simulation if their is any.
     - "Next sim" : Show the next simulation if their is any.
     - "Previous turn" : Show the previous turn of the current simulation.
     - "Next turn" : Show the next turn of the current simulation.
     - "Save all (X)" : Save all simulations images as gif and data in a save.
+
 - "Graphics" : Open the graphic tab.
+![Saves - Graphics](images/screenshots/saves_graphics.png)
     Display the selected graphic if at least one simulation was launch. Show a transparent message if not.
     - "Number of entity every second" : Line plot graphic which show the amount of entity every second during the current simulation.
     - "Average options evolution" : Line plot graphic which show the average value of an option each turn.
@@ -142,6 +156,7 @@ Saves menu :
     - "Dominance of entities" : Pie chart graphic which show the proportion between each population at their pinnacle.
     - "Next sim" : Show the next simulation if their is any.
     - "Previous sim" : Show the previous simulation if their is any.
+
 - "Saves" : [In construction] Open the save tab.
     Display all saves if their is any. Show a message if not.
     - "Save all" : Save all simulations launch today.
@@ -149,22 +164,10 @@ Saves menu :
     - "Delete today saves" : Delete all simulations launch today.
     - "Delete all" : Delete all saves (not recommended).
 
--Images-
-![Entity infos](images/screenshots/RPS Simulator - name.png)
-![Game (end)](images/screenshots/RPS Simulator - name.png)
-![Game (without UI)](images/screenshots/RPS Simulator - name.png)
-![Game](images/screenshots/RPS Simulator - name.png)
-![Menu](images/screenshots/RPS Simulator - name.png)
-![Parameters - Entities](images/screenshots/RPS Simulator - name.png)
-![Parameters - Simulation](images/screenshots/RPS Simulator - name.png)
-![Parameters - Sounds](images/screenshots/RPS Simulator - name.png)
-![Pause](images/screenshots/RPS Simulator - name.png)
-![Saves - Graphics](images/screenshots/RPS Simulator - name.png)
-![Saves - Saves](images/screenshots/RPS Simulator - name.png)
-![Saves - Simulation](images/screenshots/RPS Simulator - name.png)
-
 ***
 ## Roadmap
+
+![Game](images/screenshots/game.png)
 
 - v0.0.1 :
 	- Basic functions
@@ -184,6 +187,7 @@ Saves menu :
 	- Make simulation personalized in game (add parameters)
 - v0.0.8 :
 	- Add pause screen
+![Pause](images/screenshots/pause.png)
  	- Add key shortcuts
   	- Make entity with no target flee enemy (add smartness)
 - v0.0.9 :
@@ -201,6 +205,7 @@ Saves menu :
 	- Add graphics : Adding graphics to help undestand the simulation's evolution.
       [Later] Can save them.
 	- Saves result : Create a save with most of the simulation data
+![Saves - Saves](images/screenshots/saves_saves.png)
 	- Create datamanager : Added a class specialized for above features.
 	- Add save menu : Added a menu to display all saves and graphics.
 	- Take screenshots each turn : To have a visual aspect of the evolution during the simulation.
