@@ -3,9 +3,10 @@
 A simulation about the game 'Rock Paper Scissors'.
 
 ***
-## Pré-requis :
+## Prerequisites :
 
 - Python 3.11.1 or below
+- Python interpreter
 - Librairies :
     - datetime : Use to get current date and datetime.
     - json : Use to save data from the simulations as json files and load files.
@@ -24,22 +25,42 @@ A simulation about the game 'Rock Paper Scissors'.
 ***
 ## Installation guide
 
-- commands
-- possibles problems
+- Click on the green "<> Code" button
+- On Local/SSH/, click on "Download as zip"
+- Choose a location for the program in your machine
+- Unzip the files
+- With your python interpreter, launch the file "main.py"
+- The simulations can start !
 
 ***
-## Guide d’utilisation
+## User guide
 
 #### Methods
-- name, options, result
+- "name" (options) : result
+
+-Images-
+![name](link)
 
 ***
 ## Roadmap (futurs majs + dates prévues)
-... [v0.1.3] Add graphics + saves result + save menu → create datamanager class (+ take screenshots each turn)
-. [v0.1.4] Add possibility to add more entity type (Sheldon rps) -> add Sheldon parameter
-. [v0.1.5] Add tutorial + gamma + remove Echap shortcut + finish '!', '?' and '[later]' comments
-. [v0.9.9] Make documentations and complete functions description (purpose, args descr, args type)
-. [v1.0.0] Make the code into a .exe → create executioner class
+- v0.1.3 : [In production]
+    - Add graphics
+    - Saves result
+    - Create datamanager class
+    - Add save menu
+    - Take screenshots each turn
+- v0.1.4
+    - Add possibility to add more entity type (Sheldon rps)
+- v0.1.5
+    - Add tutorial
+    - Add gamma
+    - Finish other small tasks
+- v0.9.9
+    - Make documentations
+    - Complete functions description (purpose, args descr, args type)
+- v1.0.0
+    - Create executioner class
+    - Make the code into a .exe
 
 ***
 ## User license : GNU GPL v3
@@ -50,10 +71,4 @@ A simulation about the game 'Rock Paper Scissors'.
 ***
 **Contact : mir.nathan666@gmail.com**
 
--Images-
-![name](link)
-
-***
-[Liens (vidéos de présentations, implémentation, etc)]
-
-[Retours d’expériences]
+Feel free to share your exprerience and your suggestions !
