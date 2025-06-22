@@ -1,27 +1,26 @@
 # from math import *
 # from random import *
 # from time import *
-from webcolors import name_to_rgb
+from webcolors import name_to_rgb, IntegerRGB
 from pathlib import Path
+from data import Database
 import pygame
 
 
 class TextManager:
     def __init__(self, screen_size):
         # Variables
-        self.path = str(Path(__file__).parent)                                  # Current programm path
+        db = Database()
+        self.path_font = db.PATH_FONT
         self.screen_size = screen_size
         # Colors data
-        self.ColorNames = ["red", "orange", "wheat", "gold", "yellow", "green",
-                           "cyan", "blue", "purple", "deeppink", "brown",
-                           "lightgrey", "grey", "white", "black"]
-        self.Colors = {color: name_to_rgb(color) for color in self.ColorNames}
-        self.bg_color = self.Colors["lightgrey"]                                # For screens
-        self.borders_color = self.Colors["grey"]
-        self.font_color = self.Colors["black"]
+        self.Colors =           db.COLORS
+        self.bg_color =         db.BG_COLOR
+        self.borders_color =    db.BORDER_COLOR
+        self.font_color =       db.FONT_COLOR
         # Font data
         self.Fonts = []
-        self.FontSizes = {"small": 25, "middle": 40, "big": 60, "giant": 80}
+        self.FontSizes = db.FONTSIZES
         self.font_name: str = None
         self.main_font: pygame.font.Font = None
         self.set_font_size(self.FontSizes["middle"])
@@ -35,11 +34,13 @@ class TextManager:
             self.borders_color = self.Colors[new_color_name]
 
     def set_font_color(self, new_color_name="black"):                           # Change color of the font
-        if new_color_name in self.Colors.keys():
+        if type(new_color_name) is str and new_color_name in self.Colors.keys():
             self.font_color = self.Colors[new_color_name]
+        elif type(new_color_name) is IntegerRGB and new_color_name in self.Colors.values():
+            self.font_color = new_color_name
 
     def set_font_size(self, new_size=40):                                       # Change size of the main font
-        font_path = f"{self.path}/fonts/{self.font_name}" if self.font_name else None
+        font_path = Path(self.path_font) / self.font_name if self.font_name else None
         self.main_font = pygame.font.Font(font_path, new_size)
 
     @staticmethod
@@ -51,6 +52,10 @@ class TextManager:
 
     def get_not_click_on_position(self, pos, mouse, left_click):
         return not self.get_mouse_hover_position(pos, mouse) and left_click
+
+    def use_unactive_color(self, unactive=None):
+        unactive = self.borders_color if unactive is None else unactive
+        self.set_font_color(unactive)
 
     # ! Move second part of display_message() (with percent_size) in here
     def display_scrollable_text(self, screen, pos, text, event):                # Display a scrollable text (with mouse)
@@ -71,7 +76,7 @@ class TextManager:
         visible_area = surface.subsurface((0, self.scroll_offset, viewport.width, viewport.height))  # Portion visible
         screen.blit(visible_area, viewport.topleft)
 
-    def display_large_text(self, screen, pos, text):                            # Display a large text in a given area
+    def display_large_text(self, screen, area, text):                           # Display a large text in a given area
         Words = text.split()
         Lines = []
         current_line = ""
@@ -79,7 +84,7 @@ class TextManager:
         for word in Words:                                                      # Get lines based on message's lenght
             test_line = current_line + (" " if current_line else "") + word
             # The '+ 5' is just to leave some margin
-            if self.main_font.size(test_line)[0] <= pos[2] + 5:                 # If line is under max lenght
+            if self.main_font.size(test_line)[0] <= area[2] + 5:                 # If line is under max lenght
                 current_line = test_line
             else:
                 Lines.append(current_line)                                      # Add full line
@@ -88,14 +93,14 @@ class TextManager:
         if current_line:                                                        # Add last line
             Lines.append(current_line)
 
-        # "Tg" : in order to mesure full height of font with uppercase and low char like 'g' or 'y'
+        # "Tg" : to mesure full height of font with uppercase and low char like 'g' or 'y'
         total_text_height = len(Lines) * self.main_font.size("Tg")[1]           # Text's height
-        start_y = pos[1] + (pos[3] - total_text_height) // 2
+        start_y = area[1] + (area[3] - total_text_height) // 2
 
         for i, line in enumerate(Lines):                                        # Draw each line
             line_surface = self.main_font.render(line, True, self.font_color)
             line_width, line_height = line_surface.get_size()
-            x = pos[0] + (pos[2] - line_width) // 2                             # Center text
+            x = area[0] + (area[2] - line_width) // 2                             # Center text
             y = start_y + i * line_height
             screen.blit(line_surface, (x, y))
 
@@ -121,7 +126,7 @@ class TextManager:
                 coords[0] = int(coords[0] - size[0] * 0.5)
                 coords[1] = int(coords[1] - size[1] * 0.5)
 
-            if not get_pos_only:
+            if not get_pos_only:                                                # Arg to don't display text
                 screen.blit(text, coords)
 
             return [coords[0], coords[1], size[0], size[1]]                     # Return pos of button
@@ -134,7 +139,7 @@ class TextManager:
             return pos
 
     def display_bg_name(self, screen, name):                                    # Display name of the game in the bg
-        self.set_font_color("grey")
+        self.set_font_color(self.borders_color)
         self.display_message(screen, message=name, font_size="giant")
         self.set_font_color()                                                   # Default color
         self.set_font_size()                                                    # Default size
@@ -155,7 +160,7 @@ class TextManager:
 
         pos = self.display_message(screen, percent_x, percent_y, message, "middle", "left")
 
-        self.set_font_color("white")
+        self.set_font_color("white")                                            # Diff font color to make it readable
 
         border = 5
         b_p = (border / self.screen_size[0], border / self.screen_size[1])      # b_p : Border percent
@@ -181,7 +186,7 @@ class TextManager:
             return not param, True
         return param, False
 
-    def display_description(self, screen, mouse):
+    def display_description(self, screen, mouse):                               # Text to display is mouse overlay
         if self.description:
             self.set_font_size(25)
 
@@ -192,7 +197,7 @@ class TextManager:
             pos_m = (pos_m[0] - gap, pos_m[1] - gap, pos_m[2] + gap * 2, pos_m[3] + gap * 2)
 
             percent_size = None
-            if self.screen_size[0] <= pos_m[0] + pos_m[2]:                      # If text too long
+            if self.screen_size[0] <= pos_m[0] + pos_m[2]:                      # If text too longs
                 percent_size = [(self.screen_size[0] - pos_m[0] - gap * 2) / self.screen_size[0],
                                 (pos_m[3] * 2) / self.screen_size[1]]
                 pos_m = self.display_message(screen, *coords, self.description,
@@ -213,7 +218,7 @@ class TextManager:
         pygame.draw.rect(screen, self.borders_color, pos, border_width, border_radius)
         return pos
 
-    # Return a boolean when click on one of the 2 button : True is the first option, False the second one
+    # Return a boolean when click on one of the 2 buttons : True is the first option, False the second one
     def display_ask_box(self, screen, mouse, click, x_percent=0.35, y_percent=0.35,
     title="Question ?", text='Text', button1="Yes", button2="No"):
         pos = self.display_box(screen, x_percent, y_percent)
@@ -237,19 +242,27 @@ class TextManager:
         return None
 
     def display_button(self, screen, mouse, click, name="", pos_percent=(0, 0, 0, 0),
-    bg_color=None, has_border=False, bg_color_hover=None):
+    bg_color=None, has_border=False, bg_color_hover=None, no_bg=False, description=None):
         pos = (self.screen_size[0] * pos_percent[0], self.screen_size[1] * pos_percent[1],
                self.screen_size[0] * pos_percent[2], self.screen_size[1] * pos_percent[3])
         radius = int(pos[3] * 0.1)
+
         if bg_color_hover and self.get_mouse_hover_position(pos, mouse):
             bg_color = bg_color_hover
+        elif no_bg:
+            bg_color = None
         elif bg_color is None:
             bg_color = self.bg_color
         if type(bg_color) is str:
             bg_color = self.Colors[bg_color]
-        pygame.draw.rect(screen, bg_color, pos, border_radius=radius)
+        if bg_color is not None:
+            pygame.draw.rect(screen, bg_color, pos, border_radius=radius)
+
+        if self.get_mouse_hover_position(pos, mouse) and description is not None:
+            self.description = description
+
         if has_border:
             pygame.draw.rect(screen, self.borders_color, pos, int(pos[2] * 0.025), radius)
         self.display_message(screen, pos_percent[0] + pos_percent[2] * 0.5,
-                             pos_percent[1] + pos_percent[3] * 0.5, name, "middle")
+            pos_percent[1] + pos_percent[3] * 0.5, name, "middle")
         return self.get_click_on_position(pos, mouse, click)

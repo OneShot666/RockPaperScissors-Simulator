@@ -4,36 +4,37 @@ from random import randint, choice, shuffle
 from collections import defaultdict
 from soundmanager import SoundManager
 from entity import Entity
+from data import Database
 # import pygame
 
 
 class EntityManager:
     def __init__(self, screen_size, balanced=True, nb_entities=100, entity_speed=1, entity_range=100, entity_size=30):
         # Booleans data
-        self.balanced = balanced                                                # If same nb of entity of each kind
+        self.balanced = balanced                                                # If same nb of entity for each kind
         self.is_mutating = False                                                # If entity can mutate (modify attributs)
         # Variables data
         self.mutate_chance = 10                                                 # Percent of chance for an entity to mutate
         self.screen_size = screen_size
         self.SoundManager = SoundManager()
-        self.EntityNames = ["rock", "paper", "scissors"]
+        self.EntityNames = list(Database().ENTITYCOLORS.keys())
         self.nb_entities = nb_entities
         self.nb_max = 150
         # Entity data
         self.entity_speed = entity_speed
         self.entity_range = entity_range
-        self.entity_size = entity_size
+        self.entity_size =  entity_size
         self.max_entity_speed = self.entity_speed * 3
         self.max_entity_range = self.entity_range * 3
-        self.max_entity_size = self.entity_size * 3
+        self.max_entity_size =  self.entity_size * 3
         self.Entities = []
         # Parameters data
-        self.is_smart_entity = False                                            # Entity flee enemy
-        self.is_entity_range = False                                            # Entity detection range isn't infinite
-        self.is_follow_mouse = False                                            # Type of entity follows mouse position
-        self.entity_to_follow_mouse: Entity/str = None                          # What entity follow mouse
-        self.is_spawn_with_click = False                                        # If clicking spawns an entity
-        self.entity_to_spawn: Entity/str = None                                 # What entity to spawn with click
+        self.is_smart_entity =      False                                       # Entity flee enemy
+        self.is_entity_range =      False                                       # Entity detection range isn't infinite
+        self.is_follow_mouse =      False                                       # Type of entity follows mouse position
+        self.is_spawn_with_click =  False                                       # If clicking spawns an entity
+        self.entity_to_follow_mouse: Entity/str =   None                        # What entity follow mouse
+        self.entity_to_spawn: Entity/str =          None                        # What entity to spawn with click
         # Based function
         self.create_entities()
 
@@ -136,7 +137,7 @@ class EntityManager:
             for entity2 in self.Entities:                                       # If entity beaten
                 if (entity1 != entity2 and entity1.does_collide_with_entity(entity2) and
                         entity1.predator_name and entity1.predator_name == entity2.name):
-                    # All predators that pursue this entity stops (list below)
+                    # All predators that pursue this entity stop (list below)
                     [entity3.set_target(None) for entity3 in self.Entities if entity3.target == entity1]
                     # All targets that fleeing this entity stops (list below)
                     [entity3.set_predator(None) for entity3 in self.Entities if entity3.predator == entity1]
@@ -160,7 +161,7 @@ class EntityManager:
                 entity.size += sense * 2
                 entity.size = max(entity.size, 1)                               # '1' : Avoid become invisible
             elif 90 <= mutation < 99:                                           # 9% chance to mutate smart
-                if self.is_smart_entity:
+                if entity.is_smart:
                     entity.become_dumb()
                 else:
                     entity.become_smart()

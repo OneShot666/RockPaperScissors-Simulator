@@ -1,0 +1,47 @@
+What is an entity ?
+---
+Entities are the objects that move in the simulation.
+They represent the original hand signs of the game.
+
+Except this time, they move on their own and have a purpose :
+To become the dominante 'species' !
+These entities can seek a target and chase it until contact.
+When this happens, the chased entity becomes its predator's type and is now part of the species.
+This is instant and without any resistance.
+
+Mutations :
+- 30% : Can gain or lose a small amount of speed (±0.25)
+- 30% : Can have their vision (range) altered (±3)
+- 30% : Can grow or reduce in size (±2)
+-   9% : Can change intelligence (dumb to smart or the contrary)
+-   1% : Can change entity type (become another type)
+
+You can modify the change for entities to mute in the options.
+Deactivated by default.
+All entities also other attributes.
+
+Look for the informations below.
+
+---
+
+
+
+
+
+
+Attributes :
+
+Id : To differentiate them.
+Smart : If they're smart or not (flee the closest predator for now).
+Coords : Their coordinates (where they are on the screen).
+    Ex: 0:0 is the top left corner of the screen.
+Size : Their size on the screen (in pixels).
+Range : Their range (in pixels), they can't see any entity beyond that distance.
+    But they still can detect the mouse is they're following it.
+    By default, range is infinite.
+Speed : The maximum number of pixels they can travel per second.
+Target type : The type of entity they chase to transform into their own type.
+Target coords : Where their closest target is. May don't have one.
+Predator type : The type of entity that can defeat this entity.
+Predator coords : Where their closest predator is. May don't have one.
+Behavior : Current action of the entity. Can chase, flee or move randomly.

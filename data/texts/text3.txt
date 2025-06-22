@@ -1,0 +1,35 @@
+What is a simulation ?
+---
+In this program, you can simulate a battle between the previously seen entity.
+By default, all the entities are placed randomly on the screen and can exit it by its sides.
+But you can completely personnalize your simulation by going in the options (icon top right or press 'P').
+
+There, you can display the number of turns that have passed and set the turn duration. You can decide how you want your environment to act (with or without borders or is toroidal), if you want informations to display on the screen and more features like going back to menu when an entity won by clicking or automatically saving the simulation to analyse its data or just to watch it later.
+Graphics will be savable in the next update.
+
+You can also personnalize your entities !
+You can choose the total quantity of entities if they're smart, if they have eyesight (range) and their speed, range and size.
+You can even make a type follow your mouse, make a type spawn by clicking and decide if they can mutate.
+
+Shortcuts :
+H : Hide/Show UI                R : Restart simulation          Space : Pause
+S : Open/close save menu    P : Open/close options    
+Q : Return to main menu      Echap : Close program
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+Sheldon rules :
+
+[COMING SOON]

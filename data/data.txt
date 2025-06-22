@@ -1,4 +1,4 @@
 RockPaperScissors Simulator
 One Shot
-v0.1.1
+v0.1.2
 15/10/2024

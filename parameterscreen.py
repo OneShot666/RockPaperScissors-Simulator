@@ -10,7 +10,6 @@ class ParameterScreen:                                                          
         self.Tabs = ["Main", "Simulation", "Entities", "Sounds"]
         self.current_tab = self.Tabs[1]
         # Parameters data
-        self.is_fullscreen =    True
         self.is_display_turn =  False
         self.is_map_borders =   False                                           # Allow entities to exit the screen
         self.is_infinity_map =  False                                           # Make screen toroidal

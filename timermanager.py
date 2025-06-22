@@ -1,12 +1,12 @@
-from math import *
-from random import *
-from time import *
+# from math import *
+# from random import *
+# from time import *
 import pygame
 
 
 class TimerManager:                                                             # To manage all timers in program
     def __init__(self, duration=0, min_duration=None, max_duration=None):
-        self.is_paused_flag = True  # ! False
+        self.is_paused_flag = True                                              # Pause by default
         self.duration = None
         self.min_duration = min_duration
         self.max_duration = max_duration
@@ -72,7 +72,7 @@ class TimerManager:                                                             
             self.pause_time = None
 
     def check_loop_end(self, current_time):                                     # Reset loop if duration is reached
-        if not self.is_paused_flag and self.duration and self.start_time:       # If timer have been started and have loop
+        if not self.is_paused_flag and self.duration and self.start_time:       # If timer has been started and has loop
             if self.get_elapsed_time(current_time) >= self.duration:
                 self.reset(current_time)
                 self.nb_loop += 1

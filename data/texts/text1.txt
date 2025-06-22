@@ -1,0 +1,18 @@
+What is RockPaperScissors Simulator ?
+---
+This program is a simulation based on the famous game 'Rock Paper Scissors'.
+
+It was originally created in ancient China around the Han dynasty (206 BCE - 220 CE), where a similar hand game called 'shoushiling' was played. The game later spread to Japan, where it evolved into 'jan-ken', using the rock, paper, and scissors gestures we know today.
+It became popular in the West in the 20th century and is now widely used as a simple decision-making tool or game of chance around the world.,
+
+---
+Original gameplay :
+This game is a simple hand game usually played by two people, but it can involve more. Each player secretly chooses one of three hand signs:
+- A closed fist for rock
+- A flat hand for paper
+- Two fingers extended for scissors
+
+The rules are easy :Rocks beats scissors, scissors beats papers, and papers beats rock.
+If players choose the same sign, it's a tie !
+
+In this program, it's basically the same except player doesn't really choose a hand sign (but can still bet on the winning one if they want to). Instead, they can create and personnalize their own battle and arrange it the way they want (see more on page 3).

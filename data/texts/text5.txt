@@ -1,0 +1,25 @@
+Glossary
+---
+Behavior : What the entity is currently doing.
+
+Chase : To go after the nearest 'prey' to defeat it.
+
+Defeat : To defeat an entity is to transform it into its own type.
+
+Dumb : Entity will act without any advanced strategy, just looking for nearest prey.
+
+Entity : The object that moves in the simulation.
+
+Flee : To go to the opposite direction of the closest predator (only in smart mode).
+
+Simulation : A battle between entities.
+
+Smart : For now, allow the smart entities to flee if no prey is found.
+
+Toroidal : Sort of infinite map, if you go to the left, you'll end up to the right.
+
+And so on for up and down.
+
+Type : The 'species' of the entity, basically rocks, papers and scissors.
+
+Win : An entity wins when it's the last type standing in the simulation.

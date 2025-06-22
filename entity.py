@@ -2,14 +2,15 @@ from math import inf, sqrt
 from random import randint
 # from time import *
 from timermanager import TimerManager
+from data import Database
 import pygame
 
 
 class Entity:                                                                   # Common class for entities in the game
     def __init__(self, id_value, name, coords=None, image=None, speed=1, range_value=100, size=30, smart=False):
         self.is_smart = smart
-        self.id = id_value                                                      # [later] Use to distinguish entities
-        self.name = "paper" if name is None or name == "" else name
+        self.id = id_value                                                      # Use to distinguish entities
+        self.name = list(Database().ENTITYCOLORS.keys())[0] if name is None or name == "" else name
         self.speed = speed                                                      # Speed on screen
         self.range = range_value                                                # Perception of other entities
         self.size = size                                                        # Image's size
@@ -69,17 +70,19 @@ class Entity:                                                                   
     def get_toroidal_distance(point1, point2, screen_size):                     # Like get_distance in toroidal map
         dx = abs(point1[0] - point2[0])
         dy = abs(point1[1] - point2[1])
-        return sqrt(min(dx, screen_size[0] - dx) ** 2 + min(dy, screen_size[1] - dy) ** 2)
+        return sqrt(dx ** 2 + dy ** 2) if screen_size is None else (
+            sqrt(min(dx, screen_size[0] - dx) ** 2 + min(dy, screen_size[1] - dy) ** 2))
 
     # Only use for toroidal map to flee predator
     def get_farthest_point(self, screen_size):                                  # Calculate the farthest point on screen (for self)
         if self.predator.coords[0] is not None:
             coords = self.predator.coords
+            screen_size = [1, 1] if screen_size is None else screen_size
             width, height = screen_size
             return (coords[0] + width / 2) % width, (coords[1] + height / 2) % height
         return None
 
-    def is_mouse_over(self, mouse_pos):                                         # Check if mouse hover self
+    def is_mouse_over(self, mouse_pos):                                         # Check if mouse is hover self
         image_rect = self.image.get_rect(topleft=self.coords)
         return image_rect.collidepoint(mouse_pos)
 
@@ -131,7 +134,7 @@ class Entity:                                                                   
             self.set_predator(predator)
 
     # Move to closest target if there is any
-    def pursue_target(self, screen_size, is_map_borders=False, is_infinity_map=False):
+    def chase_target(self, screen_size, is_map_borders=False, is_infinity_map=False):
         self.move_to_coords(self.target.coords, screen_size, is_map_borders, is_infinity_map)
         self.behaviour = f"Chasing target ({self.target.id})"
 
@@ -149,17 +152,17 @@ class Entity:                                                                   
             print("Moving start :", end=" ")                                    # !!!
         if self.target and self.target.coords[0] is not None:                   # At least one target
             if testing:
-                print("Pursue target condition", end=" ")                       # !!!
+                print("Chase target condition", end=" ")                       # !!!
             if is_map_borders:                                                  # ! Not opti
-                self.pursue_target(screen_size, is_map_borders, is_infinity_map)
+                self.chase_target(screen_size, is_map_borders, is_infinity_map)
                 if testing:
                     print("1", end=", ")                                        # !!!
             elif is_infinity_map:                                               # ! Not opti
-                self.pursue_target(screen_size, is_map_borders, is_infinity_map)
+                self.chase_target(screen_size, is_map_borders, is_infinity_map)
                 if testing:
                     print("2", end=", ")                                        # !!!
             else:
-                self.pursue_target(screen_size, is_map_borders, is_infinity_map)
+                self.chase_target(screen_size, is_map_borders, is_infinity_map)
                 if testing:
                     print("3", end=", ")                                        # !!!
         elif self.predator and self.predator.coords[0] is not None:             # At least one predator
@@ -196,7 +199,7 @@ class Entity:                                                                   
         elif self.target is None:                                               # If even here, no target was found
             self.move_randomly()
         else:
-            self.pursue_target(screen_size, is_map_borders, is_infinity_map)
+            self.chase_target(screen_size, is_map_borders, is_infinity_map)
 
     def move_to_coords(self, coords, screen_size=None, is_map_borders=False, is_infinity_map=False):    # Go to point
         if self.is_smart and is_infinity_map:

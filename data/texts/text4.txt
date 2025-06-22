@@ -1,0 +1,13 @@
+Menus
+---
+Main menu : Where you can access almost all other menus and start a simulation.
+
+Simulation menu : Main purpose of this program, simulates the battle between entities.
+
+Options menu : Allow player to modify settings of the whole program at any time.
+
+Save menu : Show data and graphics about the launched simulations today and saved ones.
+
+Help notes : This menu, gives informations about gameplay and features.
+
+Warning menus : Prevents player if is about to do an irreversible action (like quiting when simulation isn't saved).

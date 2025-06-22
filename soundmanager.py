@@ -2,23 +2,23 @@
 from random import choice
 # from time import *
 from pathlib import Path
+from data import Database
 import pygame
-import os
 
 
-# !! Too much sounds at the same time, add timer for each entity ?
 class SoundManager:
     def __init__(self):
         pygame.mixer.init()
+        db = Database()
         # Boolean data
         self.is_mute = False
         self.is_loop = False                                                    # Repeat music endlessly
         # Main data
-        self.path_sound = os.path.join(str(Path(__file__).parent), "sounds")    # Current sounds path
-        self.path_music = os.path.join(str(Path(__file__).parent), "musics")    # Current musics path
+        self.path_sound = db.PATH_SOUND
+        self.path_music = db.PATH_MUSIC
         self.NamesS = [f.name for f in Path(self.path_sound).glob("*.mp3")]
         self.NamesM = [f.name for f in Path(self.path_music).glob("*.mp3")]
-        self.EntityNames = ["rock", "paper", "scissors"]
+        self.EntityNames = list(db.ENTITYCOLORS.keys())
         # Volume data
         self.sound_volume = 0.1
         self.music_volume = 0.5
@@ -30,22 +30,22 @@ class SoundManager:
         self.Sounds = {}                                                        # All sounds
         self.Musics = {}                                                        # All musics
         # Based functions
-        self.create_add_sounds()
-        self.create_add_musics()
+        self.create_sounds()
+        self.create_musics()
 
-    def create_add_sounds(self):                                                # Load and add all sounds when called
+    def create_sounds(self):                                                    # Load and add all sounds when called
         for name in self.NamesS:
             self.load_sound(name)
 
-    def create_add_musics(self):                                                # Load and add all sounds when called
+    def create_musics(self):                                                    # Load and add all sounds when called
         for name in self.NamesM:
             self.load_music(name)
 
     def load_sound(self, name):                                                 # Add given local sound
-        self.Sounds[name] = pygame.mixer.Sound(os.path.join(self.path_sound, name))
+        self.Sounds[name] = pygame.mixer.Sound(Path(self.path_sound) / name)
 
     def load_music(self, name):                                                 # Add given local sound
-        self.Musics[name] = pygame.mixer.Sound(os.path.join(self.path_music, name))
+        self.Musics[name] = pygame.mixer.Sound(Path(self.path_music) / name)
 
     def check_volumes(self):                                                    # Check if volume is correct
         self.music_volume = max(min(self.music_volume, 1), 0)
