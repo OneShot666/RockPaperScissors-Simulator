@@ -1,5 +1,4 @@
-What is an entity ?
----
+What is an entity ?---
 Entities are the objects that move in the simulation.
 They represent the original hand signs of the game.
 
@@ -9,7 +8,7 @@ These entities can seek a target and chase it until contact.
 When this happens, the chased entity becomes its predator's type and is now part of the species.
 This is instant and without any resistance.
 
-Mutations :
+Mutations chances :
 - 30% : Can gain or lose a small amount of speed (±0.25)
 - 30% : Can have their vision (range) altered (±3)
 - 30% : Can grow or reduce in size (±2)

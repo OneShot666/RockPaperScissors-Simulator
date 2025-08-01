@@ -1,3 +1,7 @@
+# !!! Temporarily here to avoid displaying a non-critical error (waiting for the next update)
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+
 # from math import *
 from random import randint
 from time import time
@@ -21,11 +25,9 @@ import pygame
 # . Upgrade ProjectMaker functions before starting new project GraphicalDance (below)
 # . Make GraphicalDance (pretty clicker: points turning around circle and merging)
 
-# ... Saves duplicate if 'save' button is spam (change saves functions) → json resolved it ?
-# ? Also save graphics for each sim → don't need with DataManager.Saves
-# . Since saving functions aren't asynchrone, use K_v to test them (with loading icon)
-# . Divide graphics into 2 categories (entity & option) and add graphics types (box plot) → make one of each
-# [next update] Make icons disappear whe ui is hide but show again if mouse on them
+# [next update] ? Add sounds for Spock and lizard
+# [next update] Make icons and 'UI is hide' text disappear when ui is hide but show again if mouse on them
+# [next update] Add credit button and get text from data/credit.txt
 # [later] Upgrade flee method → Entities movements are weird because of furthest point ?
 
 
@@ -41,8 +43,8 @@ import pygame
 # [v0.1.0] Add range for entity (detection for target and predator) + add overlay for entities
 # [v0.1.1] Add menus + end of simulation if only one type remaining → add auto_end parameter
 # [v0.1.2] Add sounds + chill music + mutation option (can change type randomly) -> create soundmanager class
-# ... [v0.1.3] Add graphics + saves result + save menu → create datamanager class (+ take screenshots each turn)
-# . [v0.1.4] Add possibility to add more entity type (Sheldon rps) -> add Sheldon parameter
+# [v0.1.3] Add graphics + saves result + save menu → create datamanager class (+ take screenshots each turn)
+# ... [v0.1.4] Add possibility to add more entity type (Sheldon rps) -> add Sheldon parameter
 # . [v0.1.5] Add tutorial + gamma + remove Echap shortcut + finish '!', '?' and '[later]' comments
 # . [v0.9.9] Make documentations and complete functions description (purpose, args descr, args type)
 # . [v1.0.0] Make the code into a .exe → create executioner class
@@ -61,7 +63,6 @@ class RPSSimulator:                                                             
         db = Database()                                                         # Import important items
         # Booleans data
         self.is_fullscreen =    True
-        self.is_saving =        False                                           # If program is saving today's sims
         self.running =          True                                            # Program running
         self.simulating =       False                                           # If on simulation (including pause menu)
         self.parametering =     False                                           # On parameter menu
@@ -71,20 +72,23 @@ class RPSSimulator:                                                             
         self.asking_restart =   False                                           # Ask player if want to restart sim
         self.asking_goback =    False                                           # Ask player if want to go back to menu
         self.asking_saving =    False                                           # Ask player if want to save sim data
+        self.asking_rmSave =    False                                           # Ask player if want to specific save
+        self.asking_rmDayS =    False                                           # Ask player if want to delete today's saves
+        self.asking_rmAllS =    False                                           # Ask player if want to delete all saves
+        self.save_to_delete =   None                                            # Index of save to delete (for asking_rmSave)
         # File data
         # self.path = Path.cwd()
         self.path =         db.PATH
         self.path_data =    db.PATH_DATA
         self.path_font =    db.PATH_FONT
         self.path_image =   db.PATH_IMAGE
-        self.Files = ["data", "data/texts", "fonts", "images", "images/graphics",
-            "images/screenshots", "logs", "musics", "saves", "screenshots", "sounds"]   # All files to create at first launch
+        self.Files =        db.FILES
         # Window data
-        self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-        self.full_size = [pygame.display.Info().current_w, pygame.display.Info().current_h]
-        self.screen_size = self.screen.get_size()                               # Full screen by default
+        self.screen =       db.SCREEN
+        self.full_size =    db.FULL_SIZE
+        self.screen_size =  db.SCREEN_SIZE
         pygame.display.set_caption(self.name)                                   # Give window a title
-        pygame.display.set_icon(Entity(-1, "scissors").image)                   # Give window an icon
+        pygame.display.set_icon(db.ENTITYIMAGES[db.ENTITYNAMES[2]])             # Give window an icon
         self.gamma = 50
         # Game data
         self.pressed =  pygame.key.get_pressed()                                # Keyboard inputs
@@ -94,18 +98,24 @@ class RPSSimulator:                                                             
         self.fps = 60
         # Datas data
         self.DataManager = DataManager()
+        self.OptionColors = db.OPTIONCOLORS                                     # Color of option in graphics
+        self.music_format = db.MUSIC_FORMAT
+        # Save data
+        self.nb_max_save = 8                                                    # Max number of save displayable
+        self.current_save_scroll = 0                                            # Index of first save to display
         # Colors data
-        self.ColorNames = db.COLORNAMES
-        self.Colors = db.COLORS
-        self.bg_hover_color =   db.BG_HOVER_COLOR
+        self.Colors =           db.COLORS
         self.bg_color =         db.BG_COLOR
-        self.borders_color =    db.BORDER_COLOR
         self.font_color =       db.FONT_COLOR
+        self.borders_color =    db.BORDER_COLOR
+        self.bg_hover_color =   db.BG_HOVER_COLOR
         self.selected_color =   db.SELECTED_COLOR
         # Entities data
         self.EntityManager = EntityManager(self.screen_size)
-        self.EntityNames = list(db.ENTITYCOLORS.keys())
+        self.BaseNames =    db.BASENAMES
+        self.EntityNames =  db.ENTITYNAMES
         self.EntityColors = db.ENTITYCOLORS
+        self.EntityImages = db.ENTITYIMAGES
         self.Mutated_Entities = []                                              # Last entities to have mutated
         # Icons & Parameters data
         self.icon_size = 50
@@ -116,7 +126,7 @@ class RPSSimulator:                                                             
         self.icon_parameter = pygame.image.load(Path(self.path_image) / "parameter.png").convert_alpha()
         self.icon_parameter = pygame.transform.scale(self.icon_parameter, (self.icon_size, self.icon_size))
         gif = Image.open(Path(self.path_image) / "loading.gif")                 # Use for saving and loading
-        self.LoadingIcon = [pygame.image.fromstring(frame.convert("RGBA").tobytes(), frame.size, "RGBA")
+        self.LoadingIcon = [pygame.image.frombuffer(frame.convert("RGBA").tobytes(), frame.size, "RGBA")
             for frame in ImageSequence.Iterator(gif)]                           # Each image of loading gif
         self.LoadingIcon = [pygame.transform.scale(frame, (self.icon_size * 3, self.icon_size * 3))
             for frame in self.LoadingIcon]
@@ -124,11 +134,12 @@ class RPSSimulator:                                                             
         self.ParametersManager = ParameterScreen()
         # Project initializer
         self.first_launch_game()                                                # Create files and stuff to avoid error
-        db.create_texts()
+        db.load_help_texts()
         # Help screen data
-        self.HelpTabs = db.HELPTABS
-        self.HelpTexts = db.HELPTEXTS
-        self.current_help_screen = 0                                            # Between 0-[nb -1]
+        self.HelpTabs =     db.HELPTABS
+        self.HelpTexts =    db.HELPTEXTS
+        self.HelpImages =   db.HELPIMAGES
+        self.current_help_screen = 0                                            # Between 0-[nb - 1]
         self.max_help_screen = len(self.HelpTabs)
         # Fonts data
         self.TextManager = TextManager(self.screen_size)
@@ -142,11 +153,9 @@ class RPSSimulator:                                                             
         self.timer_entity_infos =   TimerManager(3)                             # Timer for more infos : 3s
         self.timer_turn =           TimerManager(0, 0, 10)                      # Manage turn duration
         self.timer_one_sec =        TimerManager(1)                             # Used to collect sim datas every second
-        # [later] replace by TimerManager
-        self.event_loading = pygame.USEREVENT + 1                               # Personalized event for loading icon ...
-        pygame.time.set_timer(self.event_loading, 100)                          # ...linked to a timer (trigger every 0.1s)
         # Main function
-        self.run()
+        self.run()  # !! Temporary
+        # self.safe_run(self.run)
 
     @staticmethod
     def get_project_name(name):                                                 # Return directory name of project
@@ -219,11 +228,18 @@ class RPSSimulator:                                                             
     def get_not_click_on_position(self, pos):
         return not self.get_mouse_hover_position(pos) and self.left_click
 
+    def safe_run(self, func):
+        try:
+            func()
+        except Exception as error:                                              # Write error in log
+            print(f"\033[31m{error}\033[0m")                                    # [later] Remove when launching program
+            self.close_game(error)
+
     def run(self):                                                              # Main function
         self.EntityManager.SoundManager.play_music()                            # Play random music
 
         while self.running:                                                     # While playing
-            self.current_time = time()
+            self.current_time = round(pygame.time.get_ticks() / 1000, 1)
             self.pressed = pygame.key.get_pressed()
             self.mouse = pygame.mouse.get_pos()
             self.left_click = False
@@ -244,13 +260,16 @@ class RPSSimulator:                                                             
             if event.type == pygame.QUIT:
                 self.close_game()
 
-            if event.type == self.event_loading:
-                if self.is_saving:
-                    self.current_frame = (self.current_frame + 1) % len(self.LoadingIcon)   # Next frame
-
             if event.type == pygame.MOUSEBUTTONUP:                              # If left click (release button)
                 if event.button == 1:
                     self.left_click = True
+
+            if event.type == pygame.MOUSEWHEEL:                                 # If scroll with mouse
+                if self.save_menuing and self.DataManager.current_tab == 2 and \
+                        len(self.DataManager.Saves) > self.nb_max_save:
+                    self.current_save_scroll -= event.y                         # Scroll up
+                    self.current_save_scroll = max(min(self.current_save_scroll,
+                        max(0, len(self.DataManager.Saves) - self.nb_max_save)), 0) # Scroll limits
 
             if event.type == pygame.KEYDOWN:                                    # Keyboard entries
                 if event.key == pygame.K_ESCAPE:                                # Close simulation
@@ -371,8 +390,9 @@ class RPSSimulator:                                                             
 
         self.display_alert_messages()                                           # ...and alert messages
 
-        if self.is_saving:
-            self.display_loading_icon()
+        self.display_loading_icon()
+
+        self.TextManager.display_description(self.screen, self.mouse)           # Display at the end to be display above all
 
     def display_menu(self):                                                     # Main menu
         self.TextManager.display_message(self.screen, 0.5, 0.35, self.name, "giant")
@@ -450,8 +470,8 @@ class RPSSimulator:                                                             
         f"Coords : {int(entity.coords[0])}:{int(entity.coords[1])}",
         f"Size : {entity.size} pixels", f"Range : {entity.range} pixels",
         f"Speed : {entity.speed * self.fps} px/sec",
-        f"Target type : {entity.target_name.capitalize()}", f"Target coords : {target_coords}",
-        f"Predator type : {entity.predator_name.capitalize()}", f"Predator coords : {predator_coords}",
+        f"Target type : {entity.Targets}", f"Target coords : {target_coords}",
+        f"Predator type : {entity.Predators}", f"Predator coords : {predator_coords}",
         f"Behaviour : {entity.behaviour}")
         size = self.FontSizes["small"] + 2
         for i, info in enumerate(Infos):
@@ -485,7 +505,7 @@ class RPSSimulator:                                                             
                     center = predator.image.get_rect(topleft=predator.coords).center
                     pygame.draw.circle(self.screen, self.Colors["yellow"], center, predator.size + 5, 5)
 
-    def display_ui(self):                                                       # Data of simulation
+    def display_ui(self):                                                       # Manager of simulation
         if not self.ParametersManager.is_ui_hide:
             # Display number of entities in simulation (up left corner)
             self.TextManager.display_message(self.screen, 0.02, 0.1,
@@ -513,12 +533,16 @@ class RPSSimulator:                                                             
                 self.TextManager.display_message(self.screen, 0.98, 0.35 + 0.05 * i, command, None, "right")
 
             # Display entity informations (bottom left corner)
-            self.TextManager.display_message(self.screen, 0.02, 0.85, f"Entity data : ", None, "left")
-            self.TextManager.display_message(self.screen, 0.02, 0.88, f"- size : {Entity(0, None).size}", None, "left")
-            self.TextManager.display_message(self.screen, 0.02, 0.91, f"- speed : {Entity(0, None).speed}", None, "left")
-            if self.EntityManager.is_smart_entity:
-                self.TextManager.display_message(self.screen, 0.02, 0.94, f"- smart : "
-                    f"{'On' if self.EntityManager.is_smart_entity else 'Off'}", None, "left")
+            Manager = self.EntityManager
+            Texts = ["Entity data : ", f"- size : {Manager.entity_size}", f"- speed : {Manager.entity_speed}"]
+            if Manager.is_entity_range:
+                Texts.append(f"- range : {Manager.entity_range}")
+            if Manager.is_smart_entity:
+                Texts.append(f"- smart : {'On' if Manager.is_smart_entity else 'Off'}")
+            y = 1 - 0.03 * (len(Texts) + 1)
+            for text in Texts:
+                self.TextManager.display_message(self.screen, 0.02, y, text, None, "left")
+                y += 0.03
 
             # Display turn (bottom middle)
             if self.ParametersManager.is_display_turn:
@@ -567,6 +591,8 @@ class RPSSimulator:                                                             
 
     def open_saves(self):
         self.save_menuing = True
+        if not self.DataManager.Saves:                                      # If no saves loaded (or none exists)
+            self.DataManager.begin_loading(self.current_time)
         if self.simulating:
             self.pause_simulation()                                         # Pause simulation when open save screen
 
@@ -619,13 +645,6 @@ class RPSSimulator:                                                             
             self.open_parameters()
             self.left_click = False
 
-        if self.is_saving:
-            image = self.LoadingIcon[self.current_frame]
-            self.screen.blit(image, (self.screen_size[0] - self.icon_size * 3,
-                                     self.screen_size[1] - self.icon_size * 3.5))
-        else:
-            self.current_frame = 0
-
     def display_mutated_entities(self):                                         # Display all mutated entities for one turn
         if len(self.Mutated_Entities) > 0:                                      # If at least one entity have mutated
             for entity in self.Mutated_Entities:
@@ -663,8 +682,6 @@ class RPSSimulator:                                                             
             self.display_tab_entities_screen()
         elif current == self.ParametersManager.Tabs[3]:
             self.display_tab_sounds_screen()
-
-        self.TextManager.display_description(self.screen, self.mouse)           # Display at the end to be display above all
 
     def display_parameters_tabs_list(self):
         rect = (0.15, 0.22, 0.7, 0.05)
@@ -721,6 +738,23 @@ class RPSSimulator:                                                             
         # Second column
         x2 = 0.5
 
+        descr = "Click to set parameters to developer's personal settings"
+        if self.TextManager.display_button(*trio, "Developer settings", (x2, 0.29, 0.18, 0.05),
+        has_border=True, bg_color_hover=self.bg_hover_color, description=descr):
+            self.set_personal_settings()
+
+        if not self.simulating:
+            self.TextManager.use_unactive_color()
+        descr = "Click to update the current simulation's data (only useful for saves)"
+        if self.TextManager.display_button(*trio, "Update simulation", (x2, 0.35, 0.18, 0.05),
+        has_border=True, bg_color_hover=self.bg_hover_color, description=descr):
+            if self.DataManager.nb_sim > 0:
+                self.DataManager.update_simulation(self.DataManager.sim.id,
+                    self.timer_simulation.get_elapsed_time(self.current_time),
+                    self.EntityManager.is_smart_entity, self.EntityManager.is_entity_range,
+                    self.ParametersManager.is_map_borders, self.ParametersManager.is_infinity_map)
+        self.TextManager.set_font_color()
+
         self.TextManager.display_message(self.screen, 0.5, 0.5, "Work in progress...", "giant")
 
     # [later] Make all program sizes dynamic and change them
@@ -759,15 +793,16 @@ class RPSSimulator:                                                             
 
         descr = ("When on, forbid entities to exit screen.\n"
                  "Incompatible with 'Screen is toroidal'")
-        self.ParametersManager.is_map_borders, as_change = self.TextManager.display_parameter(*trio,
-            x1, 0.44, self.ParametersManager.is_map_borders, "Entities stay on screen : ", descr)
+        condition = self.simulating
+        self.ParametersManager.is_map_borders, as_change = self.display_desactivated_parameter(x1, 0.44,
+            self.ParametersManager.is_map_borders, "Entities stay on screen : ", condition, descr)
         if as_change and self.ParametersManager.is_map_borders:
             self.ParametersManager.is_infinity_map = False
 
         descr = ("When on, entities that exit screen end up on the other side of the screen.\n"
                  "Incompatible with 'Entities stay on screen'")
-        self.ParametersManager.is_infinity_map, as_change = self.TextManager.display_parameter(*trio,
-            x1, 0.51, self.ParametersManager.is_infinity_map, "Screen is toroidal : ", descr)
+        self.ParametersManager.is_infinity_map, as_change = self.display_desactivated_parameter(x1, 0.51,
+            self.ParametersManager.is_infinity_map, "Screen is toroidal : ", condition, descr)
         if as_change and self.ParametersManager.is_infinity_map:
             self.ParametersManager.is_map_borders = False
 
@@ -776,6 +811,13 @@ class RPSSimulator:                                                             
         descr = "When on, display quantity of entity in percent amount"
         self.ParametersManager.is_nb_in_percent, _ = self.TextManager.display_parameter(*trio,
             x1, 0.58, self.ParametersManager.is_nb_in_percent, "Quantity is in percent : ", descr)
+
+        descr = "When on, use Sheldon version instead"
+        self.EntityManager.is_sheldon, as_change = self.display_desactivated_parameter(x1, 0.65,
+            self.EntityManager.is_sheldon, "Sheldon version : ", condition, descr)
+        if as_change:
+            self.EntityManager.entity_to_spawn = None
+            self.EntityManager.entity_to_follow_mouse = None
 
         # Second column
         x2 = 0.5
@@ -811,9 +853,12 @@ class RPSSimulator:                                                             
         if self.EntityManager.nb_entities <= 0:
             self.TextManager.use_unactive_color()
         descr = "When on, will generate the same amount of entities for each types before simulation starts"
-        self.EntityManager.balanced, _ = self.TextManager.display_parameter(*trio,
-            x1, 0.3, self.EntityManager.balanced, "Balanced : ", descr)
+        condition = self.simulating
+        self.EntityManager.balanced, _ = self.display_desactivated_parameter(x1, 0.3,
+            self.EntityManager.balanced, "Balanced : ", condition, descr)
 
+        if self.simulating:
+            self.TextManager.use_unactive_color()
         rect = [x1, 0.35, 0.025, 0.04]
         func1 = self.EntityManager.reduce_nb_entities
         func2 = self.EntityManager.increase_nb_entities
@@ -823,26 +868,17 @@ class RPSSimulator:                                                             
         if result:
             self.EntityManager.set_nb_entities(result)
 
-        if self.EntityManager.nb_entities <= 0:
-            self.TextManager.use_unactive_color()
         descr = "When on, entities will flee their predator when there is no target left"
         self.EntityManager.is_smart_entity, as_change = self.TextManager.display_parameter(*trio,
             x1, 0.45, self.EntityManager.is_smart_entity, "Entities are smart : ", descr)
         if as_change:
-            if self.EntityManager.is_smart_entity:
-                self.EntityManager.make_entities_smart()
-            else:
-                self.EntityManager.make_entities_dumb()
+            self.EntityManager.update_smartness()
 
-        if self.EntityManager.nb_entities <= 0:
-            self.TextManager.use_unactive_color()
         radius = round(self.EntityManager.entity_range * (1.05 if self.EntityManager.is_smart_entity else 1), 2)
         descr = f"When on, entity can only detect peers within a given radius ({radius}px)"
         self.EntityManager.is_entity_range, _ = self.TextManager.display_parameter(*trio,
             x1, 0.51, self.EntityManager.is_entity_range, "Entity have range : ", descr)
 
-        if self.EntityManager.nb_entities <= 0:
-            self.TextManager.use_unactive_color()
         rect = [x1, 0.58, 0.025, 0.04]
         func1 = self.EntityManager.reduce_speed
         func2 = self.EntityManager.increase_speed
@@ -850,9 +886,9 @@ class RPSSimulator:                                                             
         nb_max = self.EntityManager.max_entity_speed
         result = self.display_gradient_line(rect, func1, func2, f"Speed : {nb}", nb, nb_max)
         if result:
-            self.EntityManager.entity_speed = result
+            self.EntityManager.update_speed(result)
 
-        if self.EntityManager.nb_entities <= 0 or not self.EntityManager.is_entity_range:
+        if not self.EntityManager.is_entity_range:
             self.TextManager.use_unactive_color()
         rect = [x1, 0.68, 0.025, 0.04]
         func1 = self.EntityManager.reduce_range
@@ -861,10 +897,8 @@ class RPSSimulator:                                                             
         nb_max = self.EntityManager.max_entity_range
         result = self.display_gradient_line(rect, func1, func2, f"Range : {nb}", nb, nb_max)
         if result:
-            self.EntityManager.entity_range = result
+            self.EntityManager.update_range(result)
 
-        if self.EntityManager.nb_entities <= 0:
-            self.TextManager.use_unactive_color()
         rect = [x1, 0.78, 0.025, 0.04]
         func1 = self.EntityManager.reduce_size
         func2 = self.EntityManager.increase_size
@@ -872,23 +906,22 @@ class RPSSimulator:                                                             
         nb_max = self.EntityManager.max_entity_size
         result = self.display_gradient_line(rect, func1, func2, f"Size : {nb}", nb, nb_max)
         if result:
-            self.EntityManager.entity_size = result
+            self.EntityManager.update_size(result)
 
         # Second column
         x2 = 0.5
 
-        if len(self.EntityManager.Entities) <= 0:
+        if self.simulating and len(self.EntityManager.Entities) <= 0:           # Button disabled if no entity created
             self.TextManager.use_unactive_color()
         descr = "When on, make selected entity type go to mouse coordinates"
         self.EntityManager.is_follow_mouse, _ = self.TextManager.display_parameter(*trio,
             x2, 0.3, self.EntityManager.is_follow_mouse, "Entities follow mouse : ", descr)
         if self.EntityManager.is_follow_mouse:                                  # Select following entity
             self.TextManager.display_message(self.screen, x2, 0.35, f"Entity to follow : "
-                                                                    f"{self.EntityManager.entity_to_follow_mouse}", "middle", "left")
+                f"{self.EntityManager.entity_to_follow_mouse}", "middle", "left")
             entity = self.display_entities_button(self.screen_size[0] * x2, self.screen_size[1] * 0.4,
                 current_entity_name=self.EntityManager.entity_to_follow_mouse)
-            if entity is not None:
-                self.EntityManager.entity_to_follow_mouse = entity
+            self.EntityManager.entity_to_follow_mouse = entity
 
         descr = "When on, make spawn the selected entity on mouse coordinates"
         self.EntityManager.is_spawn_with_click, _ = self.TextManager.display_parameter(*trio,
@@ -898,18 +931,13 @@ class RPSSimulator:                                                             
             self.TextManager.display_message(self.screen, x2, 0.56, text, "middle", "left")
             entity = self.display_entities_button(self.screen_size[0] * x2, self.screen_size[1] * 0.61,
                 current_entity_name=self.EntityManager.entity_to_spawn)
-            if entity is not None:
-                self.EntityManager.entity_to_spawn = entity
+            self.EntityManager.entity_to_spawn = entity
 
-        if self.EntityManager.nb_entities <= 0:
-            self.TextManager.use_unactive_color()
         descr = "When on, entity can randomly change their speed, range, size, smartness or type"
         self.EntityManager.is_mutating, _ = self.TextManager.display_parameter(*trio,
             x2, 0.71, self.EntityManager.is_mutating, "Entity can mutate : ", descr)
 
         if self.EntityManager.is_mutating:
-            if self.EntityManager.nb_entities <= 0:
-                self.TextManager.use_unactive_color()
             rect = [x2, 0.78, 0.025, 0.04]
             func1 = self.EntityManager.reduce_mutate_chance
             func2 = self.EntityManager.increase_mutate_chance
@@ -927,8 +955,8 @@ class RPSSimulator:                                                             
 
         self.TextManager.set_font_color(self.bg_color)
         sound = self.EntityManager.SoundManager.sound_name
-        message = f"Playing '{sound.replace('.mp3', '')}'" if sound else "No sound if playing"
-        self.TextManager.display_message(self.screen, x1, 0.3, message, position="left")
+        message = f"Playing '{sound.replace(self.music_format, '')}'" if sound else "No sound if playing"
+        self.TextManager.display_message(self.screen, x1, 0.3, message, align="left")
         self.TextManager.set_font_color()
 
         rect = [x1, 0.35, 0.025, 0.04]
@@ -949,8 +977,8 @@ class RPSSimulator:                                                             
 
         self.TextManager.set_font_color(self.bg_color)
         music = self.EntityManager.SoundManager.music_name
-        message = f"Playing '{music.replace('.mp3', '')}'" if music else "No music"
-        self.TextManager.display_message(self.screen, x2, 0.3, message, position="left")
+        message = f"Playing '{music.replace(self.music_format, '')}'" if music else "No music"
+        self.TextManager.display_message(self.screen, x2, 0.3, message, align="left")
         self.TextManager.set_font_color()
 
         rect = [x2, 0.35, 0.025, 0.04]
@@ -963,8 +991,8 @@ class RPSSimulator:                                                             
 
         if self.EntityManager.SoundManager.is_loop:
             self.TextManager.use_unactive_color()
-        if self.TextManager.display_button(*trio, "Next music",
-                (x2, 0.44, 0.15, 0.05), has_border=True, bg_color_hover=self.bg_hover_color):
+        if self.TextManager.display_button(*trio, "Next music", (x2, 0.44, 0.15, 0.05),
+                has_border=True, bg_color_hover=self.bg_hover_color):
             self.EntityManager.SoundManager.play_music()
         self.TextManager.set_font_color()
 
@@ -978,11 +1006,12 @@ class RPSSimulator:                                                             
 
         self.TextManager.display_message(self.screen, rect[0], rect[1], title, "middle", "left")
         self.TextManager.set_font_color()
+        color = self.TextManager.bg_color
         rect[0] += 0.2
-        if self.TextManager.display_button(*trio, "-", rect, "lightgrey", True) and nb > nb_min:
+        if self.TextManager.display_button(*trio, "-", rect, color, True) and nb > nb_min:
             func1()
         rect[0] += 0.05
-        if self.TextManager.display_button(*trio, "+", rect, "lightgrey", True) and nb < nb_max:
+        if self.TextManager.display_button(*trio, "+", rect, color, True) and nb < nb_max:
             func2()
 
         rect[1] += 0.05
@@ -999,6 +1028,23 @@ class RPSSimulator:                                                             
 
         return new_nb
 
+    def set_personal_settings(self):                                            # Developer personal settings
+        self.timer_turn.set_duration(1)
+        self.ParametersManager.is_display_turn = True
+        self.ParametersManager.is_infinity_map = True
+        self.ParametersManager.is_nb_in_percent = True
+        self.ParametersManager.is_auto_end = True
+        self.ParametersManager.is_ui_hide = True
+        self.DataManager.is_auto_play = True
+        self.DataManager.is_auto_save = True
+        self.EntityManager.is_entity_range = True
+        self.EntityManager.is_mutating = True
+        self.EntityManager.is_sheldon = True
+        self.EntityManager.mutate_chance = 25
+        self.EntityManager.update_speed(1.5)
+        self.EntityManager.update_range(120)
+        self.EntityManager.update_size(42)
+
     def increase_gamma(self):                                                   # Increase and check gamma value
         self.gamma += 1
         self.gamma = min(self.gamma, 100)
@@ -1010,19 +1056,21 @@ class RPSSimulator:                                                             
     # Buttons with image of each entity
     def display_entities_button(self, x, y, image_size=50, gap=10, current_entity_name=None):
         width = 3                                                               # Border width
-        Each = [Entity(0, name) for name in self.EntityManager.EntityNames]
-        for i, entity in enumerate(Each):
-            image = pygame.transform.scale(entity.image, (image_size, image_size))
+        choice = current_entity_name
+        Entities = self.EntityImages if self.EntityManager.is_sheldon else \
+            {n: V for n, V in self.EntityImages.items() if n in set(self.BaseNames)}
+        for i, (name, image) in enumerate(Entities.items()):
+            resize_image = pygame.transform.scale(image, (image_size, image_size))
             coords = (x + (image_size + gap) * i, y)
             pos = (coords[0] - width, coords[1] - width,
-            image_size + width * 2, image_size + width * 2)
+                image_size + width * 2, image_size + width * 2)
             border_color = self.selected_color if current_entity_name and \
-                current_entity_name == entity.name else self.TextManager.borders_color
+                current_entity_name == name else self.TextManager.borders_color
             pygame.draw.rect(self.screen, border_color, pos, width, width)
-            self.screen.blit(image, coords)
+            self.screen.blit(resize_image, coords)
             if self.get_click_on_position(pos):
-                return entity.name
-        return None
+                choice = None if current_entity_name == name else name
+        return choice
 
     def next_help_screen(self):
         self.current_help_screen = (self.current_help_screen + 1) % self.max_help_screen
@@ -1030,7 +1078,6 @@ class RPSSimulator:                                                             
     def previous_help_screen(self):
         self.current_help_screen = (self.current_help_screen - 1) % self.max_help_screen
 
-    # ! Use function to draw text in a rectangle instead (in TextManager) : texts with borders
     def display_help_screen(self):
         pos = self.TextManager.display_box(self.screen)
         if self.get_not_click_on_position(pos):
@@ -1048,17 +1095,16 @@ class RPSSimulator:                                                             
         self.TextManager.display_message(self.screen, 0.5, 0.25, title, "middle")
 
         Texts = self.HelpTexts[self.current_help_screen]                        # Display texts
-        lenght = 0.35 if len(Texts) > 1 else 0.7
-        for i, text in enumerate(Texts):                                        # ! Use percent_size
+        lenght = 0.34 if len(Texts) > 1 else 0.7
+        for i, text in enumerate(Texts):
             self.TextManager.display_message(self.screen, 0.15 + 0.35 * i, 0.3,
                 text, "small", "left", [lenght, 0.5])
 
-        image_name = "game rules.png" if self.current_help_screen == 1 else \
-            "sheldon rules.png" if self.current_help_screen == 2 else None      # Display image if has one
+        image_name = self.HelpImages[self.current_help_screen]                  # Display image if has one
         if image_name:
             rules = pygame.image.load(Path(self.path_image) / image_name).convert_alpha()
             rules = self.DataManager.resize_image(self.screen_size, rules, 0.28)
-            self.screen.blit(rules, (self.screen_size[0] * 0.58, self.screen_size[1] * 0.15))
+            self.screen.blit(rules, (self.screen_size[0] * 0.58, self.screen_size[1] * 0.12))
 
         page = f"{self.current_help_screen + 1}/{self.max_help_screen}"         # Show current page
         self.TextManager.display_message(self.screen, 0.85, 0.85, page, "middle")
@@ -1067,15 +1113,17 @@ class RPSSimulator:                                                             
         if self.timer_one_sec.check_loop_end(self.current_time) > 0:
             EntityQuantity = self.EntityManager.get_number_entities()
             for name in self.EntityNames:
-                value = EntityQuantity[name] if name in EntityQuantity.keys() else 0
-                self.DataManager.EntityQuantity[name].append(value)
+                quantity = EntityQuantity[name] if name in EntityQuantity.keys() else 0
+                self.DataManager.add_entity_value(name, quantity)
             if len(self.EntityManager.Entities) > 0:
-                self.DataManager.Speeds.append(statistics.mean([e.speed * self.fps for e in self.EntityManager.Entities]))
-                self.DataManager.Ranges.append(statistics.mean([e.range for e in self.EntityManager.Entities]))
-                self.DataManager.Sizes.append(statistics.mean([e.size for e in self.EntityManager.Entities]))
+                speed = statistics.mean([e.speed * self.fps for e in self.EntityManager.Entities])
+                self.DataManager.add_speed(speed)
+                range_value = statistics.mean([e.range for e in self.EntityManager.Entities])
+                self.DataManager.add_range(range_value)
+                size = statistics.mean([e.size for e in self.EntityManager.Entities])
+                self.DataManager.add_size(size)
             self.DataManager.take_screenshot(self.screen)
 
-    # ... Creating function
     def display_data_screen(self):                                              # Save menu
         pos = self.TextManager.display_box(self.screen)
         if self.get_not_click_on_position(pos):
@@ -1124,24 +1172,29 @@ class RPSSimulator:                                                             
 
     def display_tab_screenshots_screen(self):                                   # Tab of screenshots of a simulation
         trio = (self.screen, self.mouse, self.left_click)
-        Datas = self.DataManager
+        sim = self.DataManager.get_current_save() if self.DataManager.is_on_saves and \
+            len(self.DataManager.Saves) > 0 else self.DataManager.get_current_sim() if \
+            len(self.DataManager.Simulations) > 0 else None
 
         descr = "When on, auto play simulation turn by turn"
         self.DataManager.is_auto_play, as_change = self.TextManager.display_parameter(*trio,
             0.15, 0.15, self.DataManager.is_auto_play, "Auto-play : ", descr)
         if as_change:                                                           # Start or stop timer
             if self.DataManager.is_auto_play:
-                self.DataManager.timer.start(self.current_time)
+                self.DataManager.anim_timer.start(self.current_time)
             else:
-                self.DataManager.timer.reset(self.current_time)
-                self.DataManager.timer.pause(self.current_time)
+                self.DataManager.anim_timer.pause(self.current_time)
+                self.DataManager.anim_timer.reset(self.current_time)
 
-        if len(Datas.Screenshots[0]) > 0:
-            message = (f"sim {Datas.current_sim + 1} / {len(Datas.Screenshots)} - "
-                       f"turn {Datas.current_turn + 1} / {Datas.get_nb_turns()}")
+        Datas = self.DataManager
+        text = "save" if Datas.is_on_saves else "sim"
+        nb_max = Datas.nb_save if Datas.is_on_saves else Datas.nb_sim
+        if sim and sim.nb_turn > 0:
+            current = Datas.current_save + 1 if Datas.is_on_saves else Datas.current_sim + 1
+            message = f"{text} {current} / {nb_max} - turn {Datas.current_turn + 1} / {sim.nb_turn}"
             self.TextManager.display_message(self.screen, 0.5, 0.3, message)
 
-            screenshot = Datas.Screenshots[Datas.current_sim][Datas.current_turn]
+            screenshot = sim.Screenshots[Datas.current_turn]
             screenshot = Datas.resize_image(self.screen_size, screenshot, height=0.45)
             x = self.screen_size[0] * 0.5 - screenshot.get_width() * 0.5
             self.screen.blit(screenshot, (x, self.screen_size[1] * 0.32))
@@ -1151,73 +1204,46 @@ class RPSSimulator:                                                             
             self.TextManager.display_message(self.screen, 0.5, 0.5, "No simulation launch today", "big")
 
         # Buttons
-        if self.DataManager.nb_sim <= 1:
-            self.TextManager.use_unactive_color()
-            hover_color = None
-        else:
-            hover_color = self.bg_hover_color
-
         pos = [0.15, 0.8, 0.12, 0.05]
-        if self.TextManager.display_button(*trio, "Previous sim", pos, bg_color_hover=hover_color):
-            if self.DataManager.nb_sim > 1:
-                self.DataManager.previous_sim()
+        condition = nb_max <= 1
+        self.display_desactivated_button(f"Previous {text}", pos, condition, self.DataManager.previous_sim)
         pos[0] += 0.15
-        if self.TextManager.display_button(*trio, "Next sim", pos, bg_color_hover=hover_color):
-            if self.DataManager.nb_sim > 1:
-                self.DataManager.next_sim()
-
-        if self.DataManager.nb_sim <= 1:
-            self.TextManager.set_font_color()
-
-        if self.DataManager.get_nb_turns() <= 1:
-            self.TextManager.use_unactive_color()
-            hover_color = None
-        else:
-            hover_color = self.bg_hover_color
+        self.display_desactivated_button(f"Next {text}", pos, condition, self.DataManager.next_sim)
 
         pos[0] += 0.15
-        if self.TextManager.display_button(*trio, "Previous turn", pos, bg_color_hover=hover_color):
-            if not self.DataManager.is_auto_play:
-                self.DataManager.previous_turn()
+        condition = self.DataManager.get_nb_turns() <= 1 or self.DataManager.is_auto_play
+        self.display_desactivated_button("Previous turn", pos, condition, self.DataManager.previous_turn)
         pos[0] += 0.15
-        if self.TextManager.display_button(*trio, "Next turn", pos, bg_color_hover=hover_color):
-            if not self.DataManager.is_auto_play:
-                self.DataManager.next_turn()
-
-        if self.DataManager.get_nb_turns() <= 1:
-            self.TextManager.set_font_color()
-
-        if self.DataManager.nb_sim <= 0:
-            self.TextManager.use_unactive_color()
-            hover_color = None
-        else:
-            hover_color = self.bg_hover_color
+        self.display_desactivated_button("Next turn", pos, condition, self.DataManager.next_turn)
 
         pos[0] += 0.15
+        condition = nb_max <= 0
         nb = f" ({self.DataManager.nb_sim})" if self.DataManager.nb_sim > 0 else ""
-        if self.TextManager.display_button(*trio, f"Save all{nb}", pos, bg_color_hover=hover_color):
-            if self.DataManager.nb_sim > 0:
-                self.DataManager.save_all()
-
-        if self.DataManager.nb_sim <= 0:
-            self.TextManager.set_font_color()
+        if self.display_desactivated_button(f"Save all{nb}", pos, condition):
+            self.DataManager.update_simulation(self.DataManager.sim.id,
+                self.timer_simulation.get_elapsed_time(self.current_time),
+                self.EntityManager.is_smart_entity, self.EntityManager.is_entity_range,
+                self.ParametersManager.is_map_borders, self.ParametersManager.is_infinity_map)
+            self.DataManager.save_all(self.current_time)
 
     def display_tab_graphics_screen(self):                                      # Tab of graphics
-        trio = (self.screen, self.mouse, self.left_click)
+        Datas = self.DataManager
+        sim = "save" if Datas.is_on_saves else "sim"
+        nb_max = Datas.nb_save if Datas.is_on_saves else Datas.nb_sim
 
-        if self.DataManager.nb_sim > 0:
-            if self.DataManager.current_graphic is not None:
-                x = self.screen_size[0] * 0.5 - self.DataManager.current_pygame_image.get_width() * 0.5
+        if Datas.is_on_saves and Datas.nb_save > 0 or Datas.nb_sim > 0:
+            if Datas.current_graphic is not None:
+                x = self.screen_size[0] * 0.5 - Datas.current_graphic_image.get_width() * 0.5
                 coords = (x, self.screen_size[1] * 0.28)
-                self.screen.blit(self.DataManager.current_pygame_image, coords)
+                self.screen.blit(Datas.current_graphic_image, coords)
             else:
                 self.TextManager.use_unactive_color()
                 self.TextManager.display_message(self.screen, 0.5, 0.5, "No graphic selected")
                 self.TextManager.set_font_color()
 
-            for i, graphic in enumerate(self.DataManager.Graphics):
-                coords = (self.screen_size[0] * 0.8, self.screen_size[1] * 0.3 +
-                                                     (graphic.icon_size + 10) * i)
+            for i, graphic in enumerate(Datas.Graphics):                        # Graphics icons
+                coords = (self.screen_size[0] * 0.8,
+                    self.screen_size[1] * 0.3 + (graphic.icon_size + 10) * i)
                 pos = (*coords, graphic.icon_size, graphic.icon_size)
 
                 if self.get_mouse_hover_position(pos):                          # Add bg color
@@ -1225,118 +1251,190 @@ class RPSSimulator:                                                             
                     button_pos = (pos[0] - gap, pos[1] - gap, pos[2] + gap * 2, pos[3] + gap * 2)
                     pygame.draw.rect(self.screen, self.bg_color, button_pos, border_radius=gap)
 
-                self.screen.blit(graphic.image, coords)
+                self.screen.blit(graphic.icon, coords)
 
                 if self.get_mouse_hover_position(pos):                          # Display graphic name
                     pos_mouse = (self.mouse[0] / self.screen_size[0],
                     (self.mouse[1] - 5) / self.screen_size[1])
                     self.TextManager.display_message(self.screen, *pos_mouse, graphic.name, "small")
 
-                if self.get_click_on_position(pos):                             # Show graphic
+                if self.get_click_on_position(pos):                             # Choose/change graphic
                     self.left_click = False
                     if self.DataManager.current_graphic == i:
                         self.DataManager.current_graphic = None
-                        self.DataManager.current_pygame_image = None
+                        self.DataManager.current_graphic_image = None
                     else:
+                        self.DataManager.current_graphic = i
                         self.DataManager.update_graphic(self.screen_size, graphic, 0.6)
 
-            if self.DataManager.current_graphic == 1:                           # Display options
-                icon_size = Graphic(None, None).icon_size * 0.5
-                for i, (option, color) in enumerate(self.DataManager.Options.items()):
-                    option_pos = (self.screen_size[0] * 0.7, int(self.screen_size[1] * 0.35 +
-                                                                 (icon_size + 5) * i), icon_size, icon_size)
+            if self.DataManager.current_graphic is not None:
+                cur_graphic = self.DataManager.Graphics[self.DataManager.current_graphic]   # Display options
+                icon_size = int(cur_graphic.icon_size * 0.5)
+                Options = self.EntityColors if cur_graphic.is_entity else self.OptionColors
+                for i, (option, color) in enumerate(Options.items()):
+                    option_pos = (self.screen_size[0] * 0.7,
+                        int(self.screen_size[1] * 0.35 + (icon_size + 5) * i), icon_size, icon_size)
                     pygame.draw.rect(self.screen, color, option_pos, border_radius=int(icon_size * 0.1))
 
                     if self.get_mouse_hover_position(option_pos):
                         pos_mouse = (self.mouse[0] / self.screen_size[0],
-                        (self.mouse[1] - 5) / self.screen_size[1])
+                            (self.mouse[1] - 5) / self.screen_size[1])
                         self.TextManager.display_message(self.screen, *pos_mouse, option.capitalize(), "small")
 
                     if self.get_click_on_position(option_pos):
-                        self.DataManager.current_option = option
+                        self.DataManager.set_option(option)
                         self.DataManager.update_graphic(self.screen_size)
 
-            message = f"sim {self.DataManager.current_sim + 1} / {len(self.DataManager.Screenshots)}"
+            current = Datas.current_save + 1 if Datas.is_on_saves else Datas.current_sim + 1
+            message = f"{sim} {current} / {nb_max}"
             self.TextManager.display_message(self.screen, 0.21, 0.68, message, "middle")
         else:
-            self.TextManager.display_message(self.screen, 0.5, 0.5, "No simulation launch today", "big")
+            text = "No save saved or loaded" if Datas.is_on_saves else "No simulation launch today"
+            self.TextManager.display_message(self.screen, 0.5, 0.5, text, "big")
 
         # Buttons
-        if self.DataManager.nb_sim <= 1:
-            self.TextManager.use_unactive_color()
-            hover_color = None
-        else:
-            hover_color = self.bg_hover_color
+        pos = [0.15, 0.8, 0.12, 0.05]
+        condition = nb_max <= 1
+        if self.display_desactivated_button(f"Previous {sim}", pos, condition):
+            self.DataManager.previous_sim()
+            if self.DataManager.current_graphic is not None:
+                self.DataManager.update_graphic(self.screen_size)
 
-        if self.TextManager.display_button(*trio, "Previous sim", (0.15, 0.8, 0.12, 0.05), bg_color_hover=hover_color):
-            if self.DataManager.nb_sim > 1:
-                self.DataManager.previous_sim()
-                if self.DataManager.current_graphic is not None:
-                    self.DataManager.update_graphic(self.screen_size)
-        if self.TextManager.display_button(*trio, "Next sim", (0.15, 0.72, 0.12, 0.05), bg_color_hover=hover_color):
-            if self.DataManager.nb_sim > 1:
-                self.DataManager.next_sim()
-                if self.DataManager.current_graphic is not None:
-                    self.DataManager.update_graphic(self.screen_size)
-
-        if self.DataManager.nb_sim <= 1:
-            self.TextManager.set_font_color()
+        pos[1] -= 0.08
+        if self.display_desactivated_button(f"Next {sim}", pos, condition):
+            self.DataManager.next_sim()
+            if self.DataManager.current_graphic is not None:
+                self.DataManager.update_graphic(self.screen_size)
 
     def display_tab_saves_screen(self):                                         # Tab for saved simulations
         trio = (self.screen, self.mouse, self.left_click)
 
+        descr = "When on, show saves instead of simulations"
+        self.DataManager.is_on_saves, _ = self.TextManager.display_parameter(*trio,
+            0.15, 0.15, self.DataManager.is_on_saves, "On saves : ", descr)     # Parameter
+
         if len(self.DataManager.Saves) > 0:
-            # ! Display all saves (can click to load it → go to screenshots_screen)
-            # ! Add date, nb turn and 'delete' button on each save
-            pass
+            self.display_saves_interface()
         else:
             self.TextManager.display_message(self.screen, 0.5, 0.5, "No simulation saved yet", "big")
 
-        # Buttons (work without Saves)
-        if self.DataManager.nb_sim <= 0:
-            self.TextManager.use_unactive_color()
-            hover_color = None
-        else:
-            hover_color = self.bg_hover_color
-
+        # Buttons
         pos = [0.15, 0.8, 0.12, 0.05]
         gap = 0.05
+
+        condition = self.DataManager.nb_sim <= 0
         nb = f" ({self.DataManager.nb_sim})" if self.DataManager.nb_sim > 0 else ""
-        if self.TextManager.display_button(*trio, f"Save all{nb}", pos, bg_color_hover=hover_color):
-            if self.DataManager.nb_sim > 0:
-                self.DataManager.save_all()
+        if self.display_desactivated_button(f"Save all{nb}", pos, condition):
+            self.DataManager.update_simulation(self.DataManager.sim.id,
+                self.timer_simulation.get_elapsed_time(self.current_time),
+                self.EntityManager.is_smart_entity, self.EntityManager.is_entity_range,
+                self.ParametersManager.is_map_borders, self.ParametersManager.is_infinity_map)
+            self.DataManager.save_all(self.current_time)
 
         pos[0] += 0.15
         pos[2] += gap
-        s = "s" if self.DataManager.nb_sim > 1 else ""
-        if self.TextManager.display_button(*trio, f"Save current sim{s}", pos, bg_color_hover=hover_color):
-            if self.DataManager.nb_sim > 0:
-                self.DataManager.save_current_sim()
+        self.display_desactivated_button(f"Save current sim", pos, condition, self.DataManager.save_current_sim)
 
         pos[0] += 0.35 - gap * 2
-        if self.TextManager.display_button(*trio, "Delete today saves", pos, bg_color_hover=hover_color):
-            if self.DataManager.nb_sim > 0:
-                self.DataManager.delete_today_saves()
-
-        if self.DataManager.nb_sim <= 0:
-            self.TextManager.set_font_color()
-
-        nb_save = len(self.DataManager.Saves)
-        if nb_save <= 0:
-            self.TextManager.use_unactive_color()
-            hover_color = None
-        else:
-            hover_color = self.bg_hover_color
+        condition = not self.DataManager.was_today_saves
+        if self.display_desactivated_button("Delete today saves", pos, condition):
+            self.asking_rmDayS = True
+            self.left_click = False
 
         pos[0] += 0.2
         pos[2] -= gap
+        nb_save = len(self.DataManager.Saves)
         nb = f" ({nb_save})" if nb_save > 0 else ""
-        if self.TextManager.display_button(*trio, f"Delete all{nb}", pos, bg_color_hover=hover_color):
-            if nb_save > 0:
-                self.DataManager.delete_all_saves()
+        if self.display_desactivated_button(f"Delete all{nb}", pos, nb_save <= 0):
+            self.asking_rmAllS = True
+            self.left_click = False
 
-        if nb_save <= 0:
+    def display_saves_interface(self):
+        self.draw_scrollbar()
+
+        is_over = self.DataManager.nb_save > self.nb_max_save
+        Saves = self.DataManager.Saves[self.current_save_scroll:self.current_save_scroll + self.nb_max_save] \
+            if is_over else self.DataManager.Saves
+        for i, save in enumerate(Saves):
+            size = self.DataManager.image_size
+            width, height = self.screen_size[0] * 0.6, size * 1.2
+            pos = [self.screen_size[0] * 0.2, self.screen_size[1] * 0.3 + i * (height * 1.1), width, height]
+            index = self.DataManager.Saves.index(save)                          # Real index of save
+            color = self.selected_color if self.DataManager.is_on_saves and \
+                self.DataManager.current_save == index else self.bg_color
+            pygame.draw.rect(self.screen, color, pos, 2, 5)                     # Background
+            x = (pos[0] + width * 0.1) / self.screen_size[0]
+            y = (pos[1] + height * 0.5) / self.screen_size[1]
+            self.TextManager.display_message(self.screen, x, y, save["name"], "small")
+            x += (width * 0.25) / self.screen_size[0]
+            self.TextManager.display_message(self.screen, x, y, f"x{save["simulation"].nb_turn} turns")
+            x += (width * 0.3) / self.screen_size[0]
+            self.TextManager.display_message(self.screen, x, y, f"saved at {save["date"]}, {save["saved at"]}")
+            coord = [pos[0] + pos[2] - size, pos[1] + pos[3] * 0.5 - size * 0.5]
+            self.screen.blit(self.DataManager.bin_image, coord)                 # Delete button
+            if self.get_mouse_hover_position((*coord, size, size)):
+                x = (pos[0] + pos[2] + size + 15) / self.screen_size[0]
+                y = (self.mouse[1] + 5) / self.screen_size[1]
+                self.TextManager.display_message(self.screen, x, y, "Delete save ?")
+            condition = not (self.asking_rmSave or self.asking_rmDayS or self.asking_rmAllS)
+            if self.get_click_on_position((*coord, size, size)) and condition:  # Click to delete save
+                self.asking_rmSave = True
+                self.save_to_delete = index
+                self.left_click = False
+            elif self.get_click_on_position(pos) and condition:                 # Change current loaded save
+                self.DataManager.set_save(index)
+                self.left_click = False
+
+    def draw_scrollbar(self):
+        nb_save = self.DataManager.nb_save
+        if nb_save <= self.nb_max_save:                                         # Scrollbar isn't required
+            return
+
+        x, y = self.screen_size[0] * 0.85, self.screen_size[1] * 0.3
+        bar_height = self.screen_size[1] * 0.48
+        scrollbar_height = (self.nb_max_save / nb_save) * bar_height            # Height of cursor
+        scrollbar_height = max(scrollbar_height, 20)                            # Add a min size
+        scroll_ratio = self.current_save_scroll / (nb_save - self.nb_max_save)  # Get percent position of cursor
+        bar_y = y + scroll_ratio * (bar_height - scrollbar_height)
+
+        width = 10
+        pygame.draw.rect(self.screen, self.borders_color,
+            (x, y, width, bar_height), 0, width)                                # Background
+        pygame.draw.rect(self.screen, self.bg_color,
+            (x, bar_y, width, scrollbar_height), 0, width)                      # Cursor
+
+    def display_desactivated_parameter(self, x, y, param, text, condition, descr=None): # Disable parameter if condition is true
+        trio = (self.screen, self.mouse, self.left_click)
+
+        if condition:
+            self.TextManager.use_unactive_color()
+        new_param, as_change = self.TextManager.display_parameter(*trio, x, y, param, text, descr)
+        if not condition:                                                       # If parameter activated
+            param = new_param
+        else:                                                                   # Set font color to default value
             self.TextManager.set_font_color()
+
+        return param, as_change
+
+    def display_desactivated_button(self, text, pos, condition, func=None):     # Disable button if condition is true
+        trio = (self.screen, self.mouse, self.left_click)
+        activate_function = False
+
+        if condition:
+            self.TextManager.use_unactive_color()
+        hover_color = None if condition else self.bg_hover_color
+
+        if self.TextManager.display_button(*trio, text, pos, bg_color_hover=hover_color):
+            if not condition:                                                   # If button activated
+                if func:                                                        # Do action
+                    func()
+                else:                                                           # Or return player has clicked on param
+                    activate_function = True
+
+        if condition:                                                           # Set font color to default value
+            self.TextManager.set_font_color()
+
+        return activate_function
 
     def display_alert_messages(self):                                           # Screens to alert user about something
         trio = (self.screen, self.mouse, self.left_click)
@@ -1380,8 +1478,58 @@ class RPSSimulator:                                                             
                 self.asking_saving = False
             self.left_click = False
 
+        if self.asking_rmSave:
+            name = self.DataManager.Saves[self.save_to_delete]["name"]
+            q = "Are you sure you want to delete this save ? It will be lost."
+            result = self.TextManager.display_ask_box(*trio, 0.35, 0.35,
+                f"Delete save '{name}'", q, "Yes", "Cancel")
+            if result is None:
+                pass
+            elif result:
+                self.asking_rmSave = False
+                self.DataManager.delete_save(self.save_to_delete, self.current_time)
+                self.save_to_delete = None
+            else:
+                self.asking_rmSave = False
+            self.left_click = False
+
+        if self.asking_rmDayS:
+            q = "Are you sure you want to delete these saves ? They will be lost."
+            result = self.TextManager.display_ask_box(*trio, 0.35, 0.35,
+                "Delete today's saves", q, "Yes", "Cancel")
+            if result is None:
+                pass
+            elif result:
+                self.asking_rmDayS = False
+                self.DataManager.delete_today_saves(self.current_time)
+            else:
+                self.asking_rmDayS = False
+            self.left_click = False
+
+        if self.asking_rmAllS:
+            q = "Are you sure you want to delete these saves ? They will be lost."
+            result = self.TextManager.display_ask_box(*trio, 0.35, 0.35,
+                "Delete all saves", q, "Yes", "Cancel")
+            if result is None:
+                pass
+            elif result:
+                self.asking_rmAllS = False
+                self.DataManager.delete_all_saves(self.current_time)
+            else:
+                self.asking_rmAllS = False
+            self.left_click = False
+
+    # ! Function work fine but screen is still black when loading (look test2.py as working example)
     def display_loading_icon(self):                                             # Loading screen (bottom right)
-        pass
+        if self.DataManager.is_loading:
+            self.DataManager.load_all_saves(self.current_time)                  # Update saved files
+            image = self.LoadingIcon[self.current_frame]                        # Loading animation
+            self.current_frame = (self.current_frame + 1) % len(self.LoadingIcon)  # Next frame
+            size = max(image.width, image.height)
+            coord = (self.screen_size[0] - size, self.screen_size[1] - size * 1.2)
+            self.screen.blit(image, coord)
+        else:
+            self.current_frame = 0
 
     def check_end_simulation(self):                                             # Also display end message
         if self.simulating:
@@ -1399,17 +1547,18 @@ class RPSSimulator:                                                             
                         self.go_to_menu()
 
     def go_to_menu(self):                                                       # Go back to menu
+        self.left_click = False
         self.simulating = False
         self.pausing = False
 
         self.DataManager.take_screenshot(self.screen)                           # Last screenshot just in case
-        self.DataManager.update_simulation(self.DataManager.nb_sim,
+        self.DataManager.update_simulation(self.DataManager.sim.id,
             self.timer_simulation.get_elapsed_time(self.current_time),
             self.EntityManager.is_smart_entity, self.EntityManager.is_entity_range,
             self.ParametersManager.is_map_borders, self.ParametersManager.is_infinity_map)
-        self.DataManager.reset()
-        if self.DataManager.is_auto_save:
-            self.DataManager.save_all()
+        self.DataManager.update_all_graphics()
+        if self.DataManager.is_auto_save:                                       # Autosave screenshots, data and graphics
+            self.DataManager.save_current_sim(self.current_time)
 
         self.EntityManager.empty_entities()
 
@@ -1423,8 +1572,9 @@ class RPSSimulator:                                                             
         self.asking_goback =    False
 
         self.EntityManager.create_entities()
-        self.DataManager.add_simulation(0, self.EntityManager.is_smart_entity, self.EntityManager.is_entity_range,
-            self.ParametersManager.is_map_borders, self.ParametersManager.is_infinity_map)
+        self.DataManager.add_simulation(0, self.EntityManager.is_smart_entity,
+            self.EntityManager.is_entity_range, self.ParametersManager.is_map_borders,
+            self.ParametersManager.is_infinity_map, self.EntityManager.is_sheldon)
         self.Mutated_Entities = []
 
         self.timer_one_sec.start(self.current_time)
@@ -1432,7 +1582,8 @@ class RPSSimulator:                                                             
         if self.timer_turn.duration > 0:
             self.timer_turn.start(self.current_time)
 
-    def close_game(self):                                                       # Exit program
+    def close_game(self, error=None):                                           # Exit program
+        self.DataManager.save_log(error)
         pygame.time.delay(200)
         self.running = False
         pygame.quit()

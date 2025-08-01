@@ -10,17 +10,20 @@ from data import Database
 
 class EntityManager:
     def __init__(self, screen_size, balanced=True, nb_entities=100, entity_speed=1, entity_range=100, entity_size=30):
+        db = Database()
         # Booleans data
-        self.balanced = balanced                                                # If same nb of entity for each kind
-        self.is_mutating = False                                                # If entity can mutate (modify attributs)
+        self.balanced =     balanced                                            # If same nb of entity for each kind
+        self.is_sheldon =   False                                               # If using Sheldon rules
+        self.is_mutating =  False                                               # If entity can mutate (modify attributs)
         # Variables data
         self.mutate_chance = 10                                                 # Percent of chance for an entity to mutate
         self.screen_size = screen_size
         self.SoundManager = SoundManager()
-        self.EntityNames = list(Database().ENTITYCOLORS.keys())
+        self.EntityNames = db.ENTITYNAMES
         self.nb_entities = nb_entities
         self.nb_max = 150
         # Entity data
+        self.BaseNames = db.BASENAMES
         self.entity_speed = entity_speed
         self.entity_range = entity_range
         self.entity_size =  entity_size
@@ -36,66 +39,23 @@ class EntityManager:
         self.entity_to_follow_mouse: Entity/str =   None                        # What entity follow mouse
         self.entity_to_spawn: Entity/str =          None                        # What entity to spawn with click
         # Based function
-        self.create_entities()
+        # self.create_entities()
 
     def create_entities(self):                                                  # Create a number of entities
-        shuffle(self.EntityNames)                                               # Shuffle entities in case not nb / 3
-        third = int(self.nb_entities / 3)
+        Entities = self.EntityNames if self.is_sheldon else self.BaseNames
+        shuffle(Entities)                                                       # Shuffle entities
+        portion = len(Entities)
 
         self.Entities = []
         for i in range(self.nb_entities):
-            coords = [randint(0, self.screen_size[0]), randint(0, self.screen_size[1])]
-            if self.balanced:
-                if i <= third:
-                    name = self.EntityNames[0]
-                elif third < i <= third * 2:
-                    name = self.EntityNames[1]
-                else:
-                    name = self.EntityNames[2]
-            else:                                                               # Random entity
-                name = choice(self.EntityNames)
+            coords = [randint(0, self.screen_size[0]), randint(0, self.screen_size[1])] # Random coordinates
+            name = Entities[i % portion] if self.balanced else choice(Entities)
             entity = Entity((i + 1), name, coords, None, self.entity_speed,
                 self.entity_range, self.entity_size, self.is_smart_entity)
             self.Entities.append(entity)
 
-    def change_balance(self):                                                   # Change if nb of types are equal
-        self.balanced = not self.balanced
-
     def set_nb_entities(self, new_value):                                       # Change number of entities
         self.nb_entities = new_value
-
-    def increase_nb_entities(self):                                             # Increase number of entities by one
-        self.nb_entities = min(self.nb_max, self.nb_entities + 1)
-
-    def reduce_nb_entities(self):                                               # Reduce number of entities by one
-        self.nb_entities = max(0, self.nb_entities - 1)
-
-    def empty_entities(self):
-        self.Entities = []
-
-    def increase_speed(self):                                                   # Increase entity speed
-        self.entity_speed = min(self.max_entity_speed, self.entity_speed + 1)
-
-    def reduce_speed(self):                                                     # Reduce entity speed
-        self.entity_speed = max(0, self.entity_speed - 1)
-
-    def increase_range(self):                                                   # Increase entity range
-        self.entity_range = min(self.max_entity_range, self.entity_range + 1)
-
-    def reduce_range(self):                                                     # Reduce entity range
-        self.entity_range = max(0, self.entity_range - 1)
-
-    def increase_size(self):                                                   # Increase entity size
-        self.entity_size = min(self.max_entity_size, self.entity_size + 1)
-
-    def reduce_size(self):                                                     # Reduce entity size
-        self.entity_size = max(1, self.entity_size - 1)
-
-    def increase_mutate_chance(self):                                           # Increase mutate chance
-        self.mutate_chance = min(100, self.mutate_chance + 1)
-
-    def reduce_mutate_chance(self):                                             # Reduce mutate chance
-        self.mutate_chance = max(0, self.mutate_chance - 1)
 
     def get_number_entities(self):                                              # Return a dict with entities' name and quantity
         NumberEntities = defaultdict(int)
@@ -110,6 +70,75 @@ class EntityManager:
             entity = Entity(len(self.Entities) + 1, self.entity_to_spawn, list(mouse), smart=self.is_smart_entity)
             self.Entities.append(entity)
             self.SoundManager.play_entity_sound("pop")                          # Play spawn sound
+
+    def increase_nb_entities(self):                                             # Increase number of entities by one
+        self.set_nb_entities(min(self.nb_max, self.nb_entities + 1))
+
+    def reduce_nb_entities(self):                                               # Reduce number of entities by one
+        self.set_nb_entities(max(0, self.nb_entities - 1))
+
+    def empty_entities(self):
+        self.Entities = []
+
+    def increase_speed(self):                                                   # Increase entity speed
+        value = min(self.max_entity_speed, self.entity_speed + 0.1)
+        self.update_speed(value)
+
+    def reduce_speed(self):                                                     # Reduce entity speed
+        value = max(0, self.entity_speed - 0.1)
+        self.update_speed(value)
+
+    def increase_range(self):                                                   # Increase entity range
+        value = min(self.max_entity_range, self.entity_range + 1)
+        self.update_range(value)
+
+    def reduce_range(self):                                                     # Reduce entity range
+        value = max(0, self.entity_range - 1)
+        self.update_range(value)
+
+    def increase_size(self):                                                   # Increase entity size
+        value = min(self.max_entity_size, self.entity_size + 1)
+        self.update_size(value)
+
+    def reduce_size(self):                                                     # Reduce entity size
+        value = max(1, self.entity_size - 1)
+        self.update_size(value)
+
+    def increase_mutate_chance(self):                                           # Increase mutate chance
+        self.mutate_chance = min(100, self.mutate_chance + 1)
+
+    def reduce_mutate_chance(self):                                             # Reduce mutate chance
+        self.mutate_chance = max(0, self.mutate_chance - 1)
+
+    def update_speed(self, new_speed):
+        diff = new_speed - self.entity_speed
+        if diff != 0:
+            self.entity_speed = new_speed
+            for entity in self.Entities:
+                entity.speed += diff                                            # Modify velocity
+
+    def update_range(self, new_range):
+        diff = new_range - self.entity_range
+        if diff != 0:
+            self.entity_range = new_range
+            for entity in self.Entities:
+                entity.range += diff                                            # Modify sight
+
+    def update_size(self, new_size):
+        diff = new_size - self.entity_size
+        if diff != 0:
+            self.entity_size = new_size
+            for entity in self.Entities:
+                entity.size += diff                                             # Modify body
+                entity.image = entity.get_image()                               # Also change image size
+
+    def update_smartness(self):
+        if self.is_smart_entity:
+            for entity in self.Entities:                                        # Make all entities smart
+                entity.become_smart()
+        else:
+            for entity in self.Entities:                                        # Make all entities dumb
+                entity.become_dumb()
 
     def move_entities(self, screen_size, mouse, is_map_borders=False, is_infinity_map=False):  # Move every entity on screen
         screen_size = screen_size if self.is_smart_entity else None
@@ -136,13 +165,13 @@ class EntityManager:
         for entity1 in self.Entities:
             for entity2 in self.Entities:                                       # If entity beaten
                 if (entity1 != entity2 and entity1.does_collide_with_entity(entity2) and
-                        entity1.predator_name and entity1.predator_name == entity2.name):
+                        entity1.Predators and entity2.name in entity1.Predators):
                     # All predators that pursue this entity stop (list below)
                     [entity3.set_target(None) for entity3 in self.Entities if entity3.target == entity1]
                     # All targets that fleeing this entity stops (list below)
                     [entity3.set_predator(None) for entity3 in self.Entities if entity3.predator == entity1]
                     self.SoundManager.play_entity_sound(entity1.name)           # Play entity's beaten sound
-                    entity1.change_type()                                       # Being convert to predator type
+                    entity1.change_type(entity2.name)                           # Being convert to predator type
                     entity2.set_target(None)
 
         return Mutated
@@ -166,7 +195,7 @@ class EntityManager:
                 else:
                     entity.become_smart()
             else:                                                               # 1% to randomly change type
-                name = choice(self.EntityNames)
+                name = choice(self.EntityNames if self.is_sheldon else self.BaseNames)
                 if name != entity.name:
                     entity.change_type(name)
             return entity
@@ -193,11 +222,3 @@ class EntityManager:
             entity.coords[1] = self.screen_size[1] - entity.size
         elif entity.coords[1] >= self.screen_size[1]:
             entity.coords[1] = 0
-
-    def make_entities_smart(self):                                              # Make all entities smart
-        for entity in self.Entities:
-            entity.become_smart()
-
-    def make_entities_dumb(self):                                               # Make all entities dumb
-        for entity in self.Entities:
-            entity.become_dumb()

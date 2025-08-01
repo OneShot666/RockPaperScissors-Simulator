@@ -11,7 +11,7 @@ class TextManager:
     def __init__(self, screen_size):
         # Variables
         db = Database()
-        self.path_font = db.PATH_FONT
+        self.path_font = db.PATH_FONT                                           # Path to fonts (not really useful -> dir empty)
         self.screen_size = screen_size
         # Colors data
         self.Colors =           db.COLORS
@@ -22,12 +22,17 @@ class TextManager:
         self.Fonts = []
         self.FontSizes = db.FONTSIZES
         self.font_name: str = None
-        self.main_font: pygame.font.Font = None
-        self.set_font_size(self.FontSizes["middle"])
+        self.main_font: pygame.font.Font = None                                 # Mostly used font in entire program
         # Text data
         self.scroll_offset = 0
         self.scroll_speed = 20
         self.description = None
+        # Based function
+        self.set_font_size()
+
+    def set_font_size(self, new_size=40):                                       # Change size of the main font
+        font_path = Path(self.path_font) / self.font_name if self.font_name else None
+        self.main_font = pygame.font.Font(font_path, new_size)
 
     def set_borders_color(self, new_color_name="grey"):                         # Change color of the borders
         if new_color_name in self.Colors.keys():
@@ -38,10 +43,6 @@ class TextManager:
             self.font_color = self.Colors[new_color_name]
         elif type(new_color_name) is IntegerRGB and new_color_name in self.Colors.values():
             self.font_color = new_color_name
-
-    def set_font_size(self, new_size=40):                                       # Change size of the main font
-        font_path = Path(self.path_font) / self.font_name if self.font_name else None
-        self.main_font = pygame.font.Font(font_path, new_size)
 
     @staticmethod
     def get_mouse_hover_position(pos, mouse):
@@ -57,7 +58,77 @@ class TextManager:
         unactive = self.borders_color if unactive is None else unactive
         self.set_font_color(unactive)
 
+    def display_message(self, screen, percent_x=0.5, percent_y=0.5, message="",
+    font_size=None, align="center", percent_size=None, get_pos_only=False):     # Display message on screen
+        if font_size is not None:                                               # Change font size if a new one is required
+            self.set_font_size(self.FontSizes[font_size])
+
+        if percent_size is None:                                                # If no size limit for message
+            text = self.main_font.render(str(message), True, self.font_color)
+            coords = [int(self.screen_size[0] * percent_x), int(self.screen_size[1] * percent_y)]
+            size = text.get_size()
+
+            if align == "up":                                                   # Text in up-left corner by default
+                coords[1] += 0
+            elif align == "down":
+                coords[1] -= int(size[1])
+            elif align == "left":
+                coords[0] += 0
+            elif align == "right":
+                coords[0] -= int(size[0])
+            else:
+                coords[0] = int(coords[0] - size[0] * 0.5)
+                coords[1] = int(coords[1] - size[1] * 0.5)
+
+            if not get_pos_only:                                                # Arg to don't display text
+                screen.blit(text, coords)
+
+            return [coords[0], coords[1], size[0], size[1]]                     # Return pos of button
+        else:
+            pos = [int(self.screen_size[0] * percent_x), int(self.screen_size[1] * percent_y),
+                   int(self.screen_size[0] * percent_size[0]), int(self.screen_size[1] * percent_size[1])]
+            if not get_pos_only:
+                self.display_large_text(screen, pos, message)
+
+            return pos
+
+    # [later] Upgrade function with test2.py
+    def display_large_text(self, screen, area, text):                           # Display a large text in a given area
+        x, y, w, h = area
+        x += 5                                                                  # Add a little gap
+        y += 5
+        space_width, line_height = self.main_font.size("Tg")                    # 'Tg': To get max height of font
+        Paragraphs = text.split("\n")
+
+        y_offset = y
+        for paragraph in Paragraphs:
+            Words = paragraph.split(" ")
+            line = ""
+
+            for word in Words:
+                test_line = (line + " " + word).strip()
+                test_width, _ = self.main_font.size(test_line)
+
+                if test_width <= w:
+                    line = test_line
+                else:
+                    line_surface = self.main_font.render(line, True, self.font_color)
+                    screen.blit(line_surface, (x, y_offset))
+                    y_offset += line_height
+                    line = word
+
+            if line:                                                            # Draw remaining line
+                line_surface = self.main_font.render(line, True, self.font_color)
+                screen.blit(line_surface, (x, y_offset))
+                y_offset += line_height
+
+            y_offset += 5
+
+            if y_offset > y + h:                                                # Stop if above height
+                break                                                           # ! Should use scrollable text function
+
     # ! Move second part of display_message() (with percent_size) in here
+    # ! Move to this function if text is too long or is this function instead ?
     def display_scrollable_text(self, screen, pos, text, event):                # Display a scrollable text (with mouse)
         lines = text.splitlines()
         line_height = self.main_font.get_linesize()
@@ -75,68 +146,6 @@ class TextManager:
 
         visible_area = surface.subsurface((0, self.scroll_offset, viewport.width, viewport.height))  # Portion visible
         screen.blit(visible_area, viewport.topleft)
-
-    def display_large_text(self, screen, area, text):                           # Display a large text in a given area
-        Words = text.split()
-        Lines = []
-        current_line = ""
-
-        for word in Words:                                                      # Get lines based on message's lenght
-            test_line = current_line + (" " if current_line else "") + word
-            # The '+ 5' is just to leave some margin
-            if self.main_font.size(test_line)[0] <= area[2] + 5:                 # If line is under max lenght
-                current_line = test_line
-            else:
-                Lines.append(current_line)                                      # Add full line
-                current_line = word                                             # Start a new line
-
-        if current_line:                                                        # Add last line
-            Lines.append(current_line)
-
-        # "Tg" : to mesure full height of font with uppercase and low char like 'g' or 'y'
-        total_text_height = len(Lines) * self.main_font.size("Tg")[1]           # Text's height
-        start_y = area[1] + (area[3] - total_text_height) // 2
-
-        for i, line in enumerate(Lines):                                        # Draw each line
-            line_surface = self.main_font.render(line, True, self.font_color)
-            line_width, line_height = line_surface.get_size()
-            x = area[0] + (area[2] - line_width) // 2                             # Center text
-            y = start_y + i * line_height
-            screen.blit(line_surface, (x, y))
-
-    def display_message(self, screen, percent_x=0.5, percent_y=0.5, message="",
-    font_size=None, position=None, percent_size=None, get_pos_only=False):      # Display message on screen
-        if font_size is not None:                                               # Change font size if a new one is required
-            self.set_font_size(self.FontSizes[font_size])
-
-        if percent_size is None:                                                # If no size limit for message
-            text = self.main_font.render(str(message), True, self.font_color)
-            coords = [int(self.screen_size[0] * percent_x), int(self.screen_size[1] * percent_y)]
-            size = text.get_size()
-
-            if position == "up":                                                # Text in up-left corner by default
-                coords[1] += 0
-            elif position == "down":
-                coords[1] -= int(size[1])
-            elif position == "left":
-                coords[0] += 0
-            elif position == "right":
-                coords[0] -= int(size[0])
-            else:
-                coords[0] = int(coords[0] - size[0] * 0.5)
-                coords[1] = int(coords[1] - size[1] * 0.5)
-
-            if not get_pos_only:                                                # Arg to don't display text
-                screen.blit(text, coords)
-
-            return [coords[0], coords[1], size[0], size[1]]                     # Return pos of button
-        else:
-            pos = [int(self.screen_size[0] * percent_x), int(self.screen_size[1] * percent_y),
-                   int(self.screen_size[0] * percent_size[0]), int(self.screen_size[1] * percent_size[1])]
-            if not get_pos_only:
-                self.display_large_text(screen, pos, message)
-
-            return pos
 
     def display_bg_name(self, screen, name):                                    # Display name of the game in the bg
         self.set_font_color(self.borders_color)
@@ -172,7 +181,7 @@ class TextManager:
 
         self.display_screen(screen, pos_b, color, border_radius=10)
         self.display_message(screen, pos_b[0] / self.screen_size[0] + b_p[0],
-            pos_b[1] / self.screen_size[1] + b_p[1], active, position='left')
+            pos_b[1] / self.screen_size[1] + b_p[1], active, align='left')
 
         self.set_font_color()                                                   # Go back to default color
 
@@ -193,7 +202,7 @@ class TextManager:
             gap = 5
             coords = ((mouse[0] + 12) / self.screen_size[0], mouse[1] / self.screen_size[1])
             pos_m = self.display_message(screen, *coords, self.description,
-                position='left', get_pos_only=True)                             # Called it before to get position
+                align='left', get_pos_only=True)                                # Called it before to get position
             pos_m = (pos_m[0] - gap, pos_m[1] - gap, pos_m[2] + gap * 2, pos_m[3] + gap * 2)
 
             percent_size = None
@@ -201,10 +210,10 @@ class TextManager:
                 percent_size = [(self.screen_size[0] - pos_m[0] - gap * 2) / self.screen_size[0],
                                 (pos_m[3] * 2) / self.screen_size[1]]
                 pos_m = self.display_message(screen, *coords, self.description,
-                    position='left', percent_size=percent_size, get_pos_only=True)  # Recalculate bg size
+                    align='left', percent_size=percent_size, get_pos_only=True)  # Recalculate bg size
 
             self.display_screen(screen, pos_m, border_width=2, border_radius=5)
-            self.display_message(screen, *coords, self.description, position='left', percent_size=percent_size)
+            self.display_message(screen, *coords, self.description, align='left', percent_size=percent_size)
 
             self.set_font_size()
             self.description = None                                             # Reset description

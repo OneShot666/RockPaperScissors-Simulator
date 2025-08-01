@@ -1,5 +1,4 @@
-What is a simulation ?
----
+What is a simulation ?---
 In this program, you can simulate a battle between the previously seen entity.
 By default, all the entities are placed randomly on the screen and can exit it by its sides.
 But you can completely personnalize your simulation by going in the options (icon top right or press 'P').

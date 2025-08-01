@@ -1,9 +1,8 @@
-What is RockPaperScissors Simulator ?
----
+What is RockPaperScissors Simulator ?---
 This program is a simulation based on the famous game 'Rock Paper Scissors'.
 
 It was originally created in ancient China around the Han dynasty (206 BCE - 220 CE), where a similar hand game called 'shoushiling' was played. The game later spread to Japan, where it evolved into 'jan-ken', using the rock, paper, and scissors gestures we know today.
-It became popular in the West in the 20th century and is now widely used as a simple decision-making tool or game of chance around the world.,
+It became popular in the West in the 20th century and is now widely used as a simple decision-making tool or game of chance around the world.
 
 ---
 Original gameplay :

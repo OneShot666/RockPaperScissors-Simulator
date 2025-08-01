@@ -1,5 +1,5 @@
 from math import inf, sqrt
-from random import randint
+from random import randint, choice
 # from time import *
 from timermanager import TimerManager
 from data import Database
@@ -8,55 +8,44 @@ import pygame
 
 class Entity:                                                                   # Common class for entities in the game
     def __init__(self, id_value, name, coords=None, image=None, speed=1, range_value=100, size=30, smart=False):
+        db = Database()
+        # Attribute data
         self.is_smart = smart
         self.id = id_value                                                      # Use to distinguish entities
-        self.name = list(Database().ENTITYCOLORS.keys())[0] if name is None or name == "" else name
+        self.name = db.ENTITYNAMES[1] if name is None or name == "" else name.lower()
+        self.coords = [0, 0] if coords is None else coords
+        # Display data
         self.speed = speed                                                      # Speed on screen
         self.range = range_value                                                # Perception of other entities
         self.size = size                                                        # Image's size
-        self.coords = [0, 0] if coords is None else coords
-        # ? Change code and use rect.center for get_distance
+        self.EntityImages = db.ENTITYIMAGES
+        self.color = db.ENTITYCOLORS[self.name]
         self.image = self.get_image(image)
-        self.predator_name = self.get_predator_name()
+        # Behaviour data
+        self.Predatory = db.FOODCHAIN
+        self.Predators = self.get_predators()                                   # List of name
         self.predator: Entity = None
-        self.target_name = self.get_target_name()
+        self.Targets = self.get_targets()                                       # //
         self.target: Entity = None
         self.timer_mutation = TimerManager(1.5)                                 # Time while showing notif to mutation
         self.behaviour = "Nothing"                                              # What entity currently doing
 
     def __repr__(self):                                                         # Not use yet
         return (f"{self.name.capitalize()} [{int(self.coords[0])}, {int(self.coords[0])}] "
-                f"(target: {self.target_name.capitalize()}, predator: {self.predator_name.capitalize()}) : "
-                f"{self.behaviour}")
-
-    def set_range(self, new_value):
-        self.range = new_value
+            f"(target: {self.Targets}, predator: {self.Predators}), {self.behaviour}")
 
     def get_image(self, image=None):                                            # Set image based on name
         if image is None:
-            image = pygame.image.load(f"images/{self.name}.png").convert_alpha()
+            image = self.EntityImages[self.name]
         return pygame.transform.scale(image, (self.size, self.size))
 
-    def get_target_name(self):                                                  # Get name of target based on own name
-        if self.name == "rock":
-            return "scissors"
-        elif self.name == "scissors":
-            return "paper"
-        elif self.name == "paper":
-            return "rock"
-        else:
-            return None
+    def get_targets(self):                                                      # Get name of targets based on own name
+        return self.Predatory.get(self.name, [])
 
-    def get_predator_name(self):                                                # Get name of predator based on own name
-        if self.name == "rock":
-            return "paper"
-        elif self.name == "scissors":
-            return "rock"
-        elif self.name == "paper":
-            return "scissors"
-        else:
-            return None
+    def get_predators(self):                                                    # Get name of predators based on own name
+        return [e for e, targets in self.Predatory.items() if self.name in targets]
 
+    # ? Change code and use rect.center for get_distance
     def get_distance(self, point1, point2, screen_size=None):                   # Calculate distance between two points
         screen_size = None if not self.is_smart else screen_size
         dx = min(abs(point2[0] - point1[0]), screen_size[0] - abs(point2[0] - point1[0])) \
@@ -104,8 +93,8 @@ class Entity:                                                                   
         self.predator = new_predator
 
     def look_for_closest_target(self, Entities, screen_size=None, is_range=False):  # Search for the closest target
-        target = min((entity for entity in Entities if entity.name == self.target_name),
-                     key=lambda e: self.get_distance(self.coords, e.coords, screen_size), default=None)
+        target = min((entity for entity in Entities if entity.name in self.Targets),
+            key=lambda e: self.get_distance(self.coords, e.coords, screen_size), default=None)
 
         distance = self.get_distance(self.coords, target.coords, screen_size) \
             if target else inf
@@ -119,8 +108,8 @@ class Entity:                                                                   
             self.set_target(target)
 
     def look_for_closest_predator(self, Entities, screen_size=None, is_range=False):    # Search for the closest predator
-        predator = min((entity for entity in Entities if entity.name == self.predator_name),
-                       key=lambda e: self.get_distance(self.coords, e.coords, screen_size), default=None)
+        predator = min((entity for entity in Entities if entity.name in self.Predators),
+            key=lambda e: self.get_distance(self.coords, e.coords, screen_size), default=None)
 
         distance = self.get_distance(self.coords, predator.coords, screen_size) \
             if predator else inf
@@ -231,12 +220,11 @@ class Entity:                                                                   
         self.coords[1] += randint(-1, 1) * self.speed * boost_mult
         self.behaviour = "Moving randomly"
 
-    # ? Pb is here
     def change_type(self, name=None):                                           # Change type of entity (when beaten)
-        self.name = name if name else self.get_predator_name()
+        self.name = name if name else choice(self.get_predators())              # Before predators are updated
         self.image = self.get_image()
-        self.predator_name = self.get_predator_name()
-        self.target_name = self.get_target_name()
+        self.Predators = self.get_predators()
+        self.Targets = self.get_targets()
         self.set_predator(None)
         self.set_target(None)
 

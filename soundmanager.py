@@ -14,11 +14,11 @@ class SoundManager:
         self.is_mute = False
         self.is_loop = False                                                    # Repeat music endlessly
         # Main data
-        self.path_sound = db.PATH_SOUND
-        self.path_music = db.PATH_MUSIC
-        self.NamesS = [f.name for f in Path(self.path_sound).glob("*.mp3")]
-        self.NamesM = [f.name for f in Path(self.path_music).glob("*.mp3")]
-        self.EntityNames = list(db.ENTITYCOLORS.keys())
+        self.path_sound =   db.PATH_SOUND
+        self.path_music =   db.PATH_MUSIC
+        self.EntityNames =  db.ENTITYNAMES
+        self.NamesS = [f.name for f in Path(self.path_sound).glob(f"*{db.MUSIC_FORMAT}")]
+        self.NamesM = [f.name for f in Path(self.path_music).glob(f"*{db.MUSIC_FORMAT}")]
         # Volume data
         self.sound_volume = 0.1
         self.music_volume = 0.5
@@ -35,24 +35,18 @@ class SoundManager:
 
     def create_sounds(self):                                                    # Load and add all sounds when called
         for name in self.NamesS:
-            self.load_sound(name)
+            self.Sounds[name] = pygame.mixer.Sound(Path(self.path_sound) / name)
 
     def create_musics(self):                                                    # Load and add all sounds when called
         for name in self.NamesM:
-            self.load_music(name)
-
-    def load_sound(self, name):                                                 # Add given local sound
-        self.Sounds[name] = pygame.mixer.Sound(Path(self.path_sound) / name)
-
-    def load_music(self, name):                                                 # Add given local sound
-        self.Musics[name] = pygame.mixer.Sound(Path(self.path_music) / name)
+            self.Musics[name] = pygame.mixer.Sound(Path(self.path_music) / name)
 
     def check_volumes(self):                                                    # Check if volume is correct
         self.music_volume = max(min(self.music_volume, 1), 0)
         self.sound_volume = max(min(self.sound_volume, 1), 0)
 
     def get_type_of_sounds(self, name):                                         # Return a list of specific sounds
-        return [k for k, v in self.Sounds.items() if name in k]
+        return [k for k, _ in self.Sounds.items() if name in k]
 
     def play_entity_sound(self, name):                                          # Use to make entity play random sounds
         Sounds = self.get_type_of_sounds(name)

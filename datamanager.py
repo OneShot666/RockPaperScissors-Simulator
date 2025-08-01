@@ -1,77 +1,67 @@
 # from math import *
 # from random import *
 # from time import *
-from PIL import Image
 from pathlib import Path
+from humanize import precisedelta
 from datetime import date, datetime
-from humanize import naturaldelta, precisedelta
 from timermanager import TimerManager
-from graphic import Graphic
+from simulation import Simulation
 from data import Database
 import matplotlib.pyplot as plt
+import matplotlib
 import statistics
 import pygame
 import shutil
 import json
+import os
 import re
 
 
-# ? Is timer lagging (is a bit early)
-# ! Use 'is_on_saves' bool : precise it on 'save' tab and write date and hour on 'screen' and 'sim' tabs
-# ! Modify code so simulation is added while running (every 10 secs/turns -> uncompleted but updated)
 class DataManager:
     def __init__(self):
-        # Boolean data
-        self.is_auto_play = False                                               # Play gif of current simulation
-        self.is_auto_save = False                                               # Save at the end of the simulation
-        self.is_sim_saved = False                                               # If the last simulation was saved
-        self.is_on_saves =  False                                               # If is displaying old save or today's sim
+        matplotlib.use("Agg")                                                   # Use non-interactive back-end
         db = Database()
+        # Boolean data
+        self.was_today_saves =  False                                           # If saves from today already exists
+        self.is_loading =       False                                           # When loading saves
+        self.is_auto_play =     False                                           # Play gif of current simulation
+        self.is_auto_save =     False                                           # Save at the end of the simulation
+        self.is_sim_saved =     False                                           # If the last simulation was saved
+        self.is_on_saves =      False                                           # If on saves or today's sims
         # Path data
-        self.today = date.today().strftime("%d-%m-%Y")                          # Today's date: dd-mm-yyyy
-        self.path_log =         db.PATH_LOG
-        self.path_save =        db.PATH_SAVE
-        self.path_screenshot =  db.PATH_SCREENSHOT
-        self.path_graphic =     db.PATH_GRAPHIC
-        self.timer = TimerManager(0.5)                                          # A timer for gif animation
+        self.today = date.today().strftime(db.DATE_FORMAT)
+        self.path_log =             db.PATH_LOG
+        self.path_save =            db.PATH_SAVE
+        self.path_image =           db.PATH_IMAGE
+        self.path_icon_graphic =    db.PATH_ICON_GRAPHIC
+        self.anim_timer = TimerManager(0.5)                                     # A timer for gif animation
         # Graphics data
-        self.GraphicNames = ["Number of entity every second", "Average options evolution",
-            "Pinnacle for each entity", "Maximum for each option", "Dominance of entities"]
-        self.GraphicTypes = [_ for _ in Path(self.path_graphic).iterdir() if _.suffix == ".png"]
         self.Graphics = []
-        self.Figures = []
         self.current_graphic = None                                             # Index of graphic
-        self.current_pygame_image = None
+        self.current_graphic_image = None
         # Menu data
         self.Tabs = ["Simulations", "Graphics", "Saves"]                        # Today, Before
-        self.current_tab = 0                                                    # Index of tab to display
-        self.current_sim = 0                                                    # Index of sim to display
+        self.current_tab =  2                                                   # Index of tab to display
+        self.current_sim =  0                                                   # Index of sim to display
+        self.current_save = 0                                                   # Index of save to display
         self.current_turn = 0                                                   # Index of turn to display
         # Simulation data
-        self.Saves = []                                                         # Saved data
-        self.screen_format = ".gif"
-        self.save_format =   ".json"
-        self.log_format =    ".md"
-        self.Screenshots = [[]]                                                 # Visual status of each sim every second
-        self.sim = {"id": int, "time": float, "quantity": list[dict[str:int]],
-            "speeds": list[float | int], "ranges": list[float | int], "sizes": list[float | int],
-            "smart": bool, "range": bool, "borders": bool, "toroidal": bool}    # Last saved simulation
-        self.Simulations = []                                                   # Simulations launch today
-        self.nb_saved_screens = self.get_nb_file(self.path_screenshot, self.screen_format)
-        self.nb_saved_sims =    self.get_nb_file(self.path_save, self.save_format)
-        self.nb_saved_logs =    self.get_nb_file(self.path_log, self.log_format)
+        self.sim = None                                                         # Last simulation created
         self.nb_sim = 0                                                         # Number of launched simulations
-        # Entities data
-        self.EntityNames = list(db.ENTITYCOLORS.keys())
-        self.EntityQuantity = {name: [] for name in self.EntityNames}           # Quantity of entity every second
-        # Options data
-        self.Options = db.OPTIONCOLORS
-        self.current_option = list(self.Options.keys())[0]                      # Option for graphic n°2
-        self.Speeds = []                                                        # Average of all entities every second
-        self.Ranges = []
-        self.Sizes =  []
-        # Basic function
-        self.create_graphics()
+        self.Simulations = []                                                   # Simulations launch today
+        self.nb_saved_logs = 0
+        self.log_format = db.LOG_FORMAT
+        # Save data
+        self.save = None                                                        # Last save loaded
+        self.nb_save = 0                                                        # Number of loaded saves
+        self.Saves = []                                                         # Saved data
+        self.loader = None
+        self.load_timer = TimerManager(0.01)                                    # A timer for loading saves
+        self.save_format = db.SAVE_FORMAT
+        self.image_size = db.FONTSIZES["middle"]
+        self.bin_image = pygame.image.load(Path(self.path_image / "bin.png")).convert_alpha()   # Delete icon for saves
+        self.bin_image = pygame.transform.scale(self.bin_image, (self.image_size, self.image_size))
+        self.EntityNames = db.ENTITYNAMES
 
     def get_nb_file(self, path, format_type):
         full_path = Path(path) / self.today
@@ -79,38 +69,44 @@ class DataManager:
             return len([_ for _ in Path(full_path).iterdir() if _.suffix == format_type])
         return 0
 
-    # [later] Will be upgraded to a for loop (with alternately options and no options)
-    def create_graphics(self):                                                  # Create graphics
-        graphic = Graphic(self.GraphicNames[0], self.GraphicTypes[2])
-        self.Graphics.append(graphic)
-        graphic = Graphic(self.GraphicNames[1], self.GraphicTypes[2], True)     # With option
-        self.Graphics.append(graphic)
-        graphic = Graphic(self.GraphicNames[2], self.GraphicTypes[0])
-        self.Graphics.append(graphic)
-        graphic = Graphic(self.GraphicNames[3], self.GraphicTypes[0], True)
-        self.Graphics.append(graphic)
-        graphic = Graphic(self.GraphicNames[4], self.GraphicTypes[3])
-        self.Graphics.append(graphic)
+    def get_next_log_name(self):
+        self.nb_saved_logs = self.get_nb_file(self.path_log, self.log_format)
+        return f"log {self.nb_saved_logs + 1}" + self.log_format
+
+    def get_current_sim(self) -> Simulation:
+        return self.Simulations[self.current_sim]
+
+    def get_current_save(self) -> Simulation:
+        return self.Saves[self.current_save]["simulation"]
 
     def get_nb_turns(self):                                                     # Return nb of turn of current sim
-        return len(self.Screenshots[self.current_sim])
+        return self.get_current_sim().nb_turn if len(self.Simulations) > 0 else (
+            self.get_current_save().nb_turn) if self.is_on_saves and len(self.Saves) > 0 else 0
 
-    def get_current_option_list(self):
-        Option = []
-        sim = self.Simulations[self.current_sim]
-        if self.current_option == list(self.Options.keys())[0]:
-            Option = sim["speeds"]
-        elif self.current_option == list(self.Options.keys())[1]:
-            Option = sim["ranges"]
-        elif self.current_option == list(self.Options.keys())[2]:
-            Option = sim["sizes"]
-        return {self.current_option: Option}
+    def set_option(self, value):                                                # Change option of graphics with options
+        graphic = self.Graphics[self.current_graphic]
+        if value in graphic.Options:
+            graphic.Options.remove(value)
+        else:
+            graphic.Options.append(value)
+        self.update_all_graphics()
+
+    def set_save(self, index):                                                  # Change the current save loaded
+        if len(self.Saves) > index:
+            if self.save == self.Saves[index]:                                  # Can unselect current save
+                self.current_save = 0
+                self.save = None
+                self.is_on_saves = False
+            else:
+                self.current_turn = 0
+                self.current_save = index
+                self.save = self.Saves[index]
+                self.is_on_saves = True
+            self.update_all_graphics()
 
     def is_current_sim_saved(self):                                             # [later] Change function
         if len(self.Simulations) > 0:
-            current = next(sim for sim in self.Simulations if sim['id'] == self.current_sim)
-            if current:
-                return current['is_saved']
+            return self.get_current_sim().is_saved
         return False
 
     @staticmethod
@@ -134,39 +130,37 @@ class DataManager:
     def next_tab(self):                                                         # Change current tab of save screen
         self.current_tab = (self.current_tab + 1) % len(self.Tabs)
 
-    def previous_sim(self):                                                     # Change current simulation to display
-        if self.nb_sim > 0:
+    def previous_sim(self):                                                     # Change current sim/save to display
+        if self.is_on_saves and self.nb_save > 0:
+            self.current_save = (self.current_save - 1) % self.nb_save
+            self.current_turn = 0
+        elif self.nb_sim > 0:
             self.current_sim = (self.current_sim - 1) % self.nb_sim
             self.current_turn = 0
             self.is_sim_saved = self.is_current_sim_saved()
 
-    def next_sim(self):                                                         # Change current simulation to display
-        if self.nb_sim > 0:
+    def next_sim(self):                                                         # Change current sim/save to display
+        if self.is_on_saves and self.nb_save > 0:
+            self.current_save = (self.current_save + 1) % self.nb_save
+            self.current_turn = 0
+        elif self.nb_sim > 0:
             self.current_sim = (self.current_sim + 1) % self.nb_sim
             self.current_turn = 0
             self.is_sim_saved = self.is_current_sim_saved()
 
     def previous_turn(self):                                                    # Change current turn of current sim
-        if self.nb_sim > 0:
+        if self.nb_save > 0 if self.is_on_saves else self.nb_sim > 0:
             self.current_turn -= 1
             if self.current_turn < 0:
                 self.current_turn = self.get_nb_turns() - 1
 
     def next_turn(self):                                                        # Change current turn of current sim
-        if self.nb_sim > 0:
+        if self.nb_save > 0 if self.is_on_saves else self.nb_sim > 0:
             self.current_turn += 1
             if self.current_turn > self.get_nb_turns() - 1:
                 self.current_turn = 0
 
-    def reset(self):                                                            # At the start of a simulation
-        # Simulations and Screenshots don't reset
-        self.EntityQuantity = {name: [] for name in self.EntityNames}
-        self.Speeds = []
-        self.Ranges = []
-        self.Sizes = []
-
-    # Return the name of the file with the highest number in his name
-    @staticmethod
+    @staticmethod                       # Return the name of the file with the highest number in his name (unused yet)
     def get_highest_file_nb(path):
         path = Path(path)
         if Path(path).exists():
@@ -179,212 +173,216 @@ class DataManager:
                 return None
         return None
 
-    def get_next_screenshot_name(self, nb_turn=1):
-        nb = self.nb_saved_screens + 1
-        self.nb_saved_screens = self.get_nb_file(self.path_screenshot, self.screen_format)  # Update number of file
-        s = "s" if nb_turn > 1 else ""
-        return f"sim {nb} (x{nb_turn} turn{s})" + self.screen_format
-
-    def get_next_save_name(self):
-        nb = self.nb_saved_sims + 1
-        self.nb_saved_sims = self.get_nb_file(self.path_save, self.save_format)  # Update number of file
-        return f"save {nb}" + self.save_format
-
-    def get_next_log_name(self):
-        nb = self.nb_saved_logs + 1
-        self.nb_saved_logs = self.get_nb_file(self.path_log, self.log_format)   # Update number of file
-        return f"log {nb}" + self.log_format
-
-    def add_simulation(self, duration, smart=False, is_range=False, borders=False, toroidal=False): # Save last sim
-        self.nb_sim += 1
-        self.sim = {"id": self.nb_sim, "time": duration, "quantity": self.EntityQuantity,
-            "speeds": self.Speeds, "ranges": self.Ranges, "sizes": self.Sizes,
-            "smart": smart, "range": is_range, "borders": borders, "toroidal": toroidal,
-            "is_saved": False}
+    def add_simulation(self, duration, smart=False, is_range=False,
+            borders=False, toroidal=False, sheldon=False):                      # Save last sim
+        self.sim = Simulation(self.nb_sim + 1, duration, 0, smart, is_range, borders, toroidal, sheldon)
+        self.sim.update_id(was_saved=True)                                      # Update id
+        self.Graphics = self.sim.Graphics
+        self.is_on_saves = False
         self.Simulations.append(self.sim)
+        if len(self.Simulations) > 1:                                           # Also update current simulation index
+            self.current_sim += 1
+        self.nb_sim = len(self.Simulations)
 
-    # ! Checking of function work (try diff conditions)
-    def update_simulation(self, sim_id, duration, smart=False, is_range=False, borders=False, toroidal=False):
-        new_sim = {"id": sim_id, "time": duration, "quantity": self.EntityQuantity,
-            "speeds": self.Speeds, "ranges": self.Ranges, "sizes": self.Sizes,
-            "smart": smart, "range": is_range, "borders": borders, "toroidal": toroidal, "is_saved": False}
+    def update_simulation(self, sim_id, duration, smart=False, is_range=False,
+            borders=False, toroidal=False, sheldon=False):
         for i, save in enumerate(self.Simulations):
-            if save["id"] == new_sim["id"]:
-                self.Simulations[i] = new_sim
+            if save.id == sim_id:
+                self.Simulations[i].duration = duration
+                self.Simulations[i].is_smart = smart
+                self.Simulations[i].is_range = is_range
+                self.Simulations[i].is_borders = borders
+                self.Simulations[i].is_toroidal = toroidal
+                self.Simulations[i].is_sheldon = sheldon
                 return
-        self.add_simulation(duration, smart, is_range, borders, toroidal)       # If sim wasn't added
+        self.add_simulation(duration, smart, is_range, borders, toroidal, sheldon)  # If sim wasn't added
 
-    def take_screenshot(self, screen):                                          # Take a full screenshot but don't save it
-        screenshot = screen.copy()
-        if len(self.Screenshots) <= self.nb_sim - 1:
-            self.Screenshots.append([])                                         # Add list for next sim
-        self.Screenshots[self.nb_sim - 1].append(screenshot)
+    def add_entity_value(self, name, value):
+        if len(self.Simulations) > 0:
+            self.get_current_sim().add_entity(name, value)
 
-    def save_screenshots(self, screens=None):                                   # Save all taken screenshots
-        dir_name = Path(self.path_screenshot) / self.today
-        Path(dir_name).mkdir(exist_ok=True)                                    # Create directory if doesn't exist
+    def add_speed(self, speed):
+        if len(self.Simulations) > 0:
+            self.get_current_sim().add_speed(speed)
 
-        Images = [pygame.image.tostring(img, "RGB") for img in screens]
-        Images = [Image.frombytes("RGB", img.get_size(), data) for img, data in zip(screens, Images)]
-        pause = 4                                                               # Pause of 1s / 250ms (see duration)
-        Images.extend([Images[-1]] * pause)                                     # Add copies of last image to create pause
+    def add_range(self, range_value):
+        if len(self.Simulations) > 0:
+            self.get_current_sim().add_range(range_value)
 
-        file_name = self.get_next_screenshot_name(len(screens))
-        Images[0].save(Path(dir_name) / file_name, save_all=True,
-            append_images=Images[1:], duration=250, loop=0)
+    def add_size(self, size):
+        if len(self.Simulations) > 0:
+            self.get_current_sim().add_size(size)
 
-    def save_simulation(self, id_sim=0):                                        # Create text file to save data
-        dir_name = Path(self.path_save) / self.today
-        Path(dir_name).mkdir(exist_ok=True)
+    def take_screenshot(self, screen):
+        if len(self.Simulations) > 0:
+            self.get_current_sim().take_screenshot(screen)
 
-        file_name = self.get_next_save_name()
-        if not Path(Path(dir_name) / file_name).exists():
-            with open(Path(dir_name) / file_name, 'w') as file:                 # Create game data file
-                name = file_name.replace(f"{self.today} - ", "").replace(self.save_format, "").capitalize()
-                hour = datetime.now().strftime("%H:%M")
-                sim = next((s for s in self.Simulations if s['id'] == id_sim), None)
-                if sim:
-                    sim["is_saved"] = True
-                simulation = {"name": name, "hour": hour, "simulation": sim}
-                json.dump(simulation, file, indent=4)
-                file.close()
+    def update_all_graphics(self):
+        if self.is_on_saves and len(self.Saves) > 0:
+            self.get_current_save().update_graphics()
+            self.Graphics = self.get_current_save().Graphics
+        elif len(self.Simulations) > 0:
+            self.get_current_sim().update_graphics()
+            self.Graphics = self.get_current_sim().Graphics
 
-    def save_log(self, Sims: list):                                             # Automatically save at the end of each sim
+    def save_log(self, error=None):                                             # Automatically save when quiting program
         dir_name = Path(self.path_log) / self.today
         Path(dir_name).mkdir(exist_ok=True)
 
         file_name = self.get_next_log_name()
-        # if not Path(Path(dir_name) / file_name).exists():                     # Check isn't necessary (will just overwrite)
         with open(Path(dir_name) / file_name, 'w') as file:                     # Create game data file
-            name = file_name.replace(f"{self.today} - ", "").replace(self.log_format, "").capitalize()
+            name = file_name.replace(self.log_format, "").capitalize()
             hour = datetime.now().strftime("%H:%M")
             file.write(f"# {name}\n")
             file.write(f"###### created {self.today} at {hour}\n\n")
             file.write(f"***\n")
+            nb = self.nb_sim if self.nb_sim > 1 else "no"
             s = "s" if self.nb_sim > 1 else ""
-            file.write(f"### There was {self.nb_sim} simulation{s} launched.\n\n")
+            file.write(f"### There was {nb} simulation{s} launched today.\n\n")
 
-            WinRate = {name: 0 for name in self.EntityNames}
-            file.write(f"##### Simulations : \n\n")
+            if len(self.Simulations) > 0:
+                file.write(f"##### Simulations : \n\n")
+                WinRate = {name: 0 for name in self.EntityNames}
 
-            for sim in Sims:
-                nb_turn = len(sim['quantity'][self.EntityNames[0]])
-                s = "s" if nb_turn > 1 else ""
-                duration = precisedelta(sim['time'])                            # Display text with precise units
-                file.write(f"The simulation n°{sim['id']} last {nb_turn} turn{s} and {duration}.\\\n")
-                file.write(f"Were entities smart : {'Yes' if sim['smart'] else 'No'}\\\n")
-                file.write(f"Did map had borders : {'Yes' if sim['borders'] else 'No'}\\\n")
-                file.write(f"Did map was toroidal : {'Yes' if sim['toroidal'] else 'No'}\\\n")
-                file.write(f"Were entities had range : {'Yes' if sim['range'] else 'No'}\\\n")
-                file.write(f"Average size was **{round(statistics.mean(sim['sizes']), 3)}** pixels\\\n")
-                file.write(f"Average range was **{round(statistics.mean(sim['ranges']), 3)}** pixels\\\n")
-                file.write(f"Average speed was **{round(statistics.mean(sim['speeds']), 3)}** pixels/sec\\\n")
-                last = {name: sim['quantity'][name][-1] for name in self.EntityNames}
-                winner = max(last, key=last.get)
-                WinRate[winner] += 1
-                nb_entity = sum(last.values())
-                s = "ies" if nb_entity > 1 else "y"
-                file.write(f"The entity '{winner}' won : x{last[winner]} / {nb_entity} entit{s}.\n\n")
-            file.write("\n")
+                for sim in self.Simulations:
+                    s = "s" if sim.nb_turn > 1 else ""
+                    duration = precisedelta(sim.duration)                       # Display text with precise units
+                    file.write(f"The simulation n°{sim.id} last {sim.nb_turn} turn{s} and {duration}.\\\n")
+                    file.write(f"Were entities smart :     {'Yes' if sim.is_smart else 'No'}\\\n")
+                    file.write(f"Did map had borders :     {'Yes' if sim.is_borders else 'No'}\\\n")
+                    file.write(f"Did map was toroidal :    {'Yes' if sim.is_toroidal else 'No'}\\\n")
+                    file.write(f"Were entities had range : {'Yes' if sim.is_range else 'No'}\\\n")
+                    file.write(f"With Sheldon rules :      {'Yes' if sim.is_sheldon else 'No'}\\\n")
+                    if sim.nb_turn > 0:
+                        file.write(f"Average speed was **{round(statistics.mean(sim.Speeds), 3)}** pixels/sec\\\n")
+                        file.write(f"Average range was **{round(statistics.mean(sim.Ranges), 3)}** pixels\\\n")
+                        file.write(f"Average size was **{round(statistics.mean(sim.Sizes), 3)}** pixels\\\n")
+                        last = {name: sim.EntityQuantity[name][-1] for name in sim.EntityQuantity.keys()}
+                        winner = max(last, key=last.get)
+                        WinRate[winner] += 1
+                        nb_entity = sum(last.values())
+                        s = "ies" if nb_entity > 1 else "y"
+                        file.write(f"The entity '{winner}' won : x{last[winner]} / {nb_entity} entit{s}.\n\n")
+                    else:
+                        file.write(f"The simulation didn't last a single turn or there was a problem with the data collecting.\n\n")
+                file.write("\n")
 
-            file.write("##### Entity winrate : \n")
-            for entity, nb_win in WinRate.items():
-                file.write(f"- {entity} : {round(nb_win / self.nb_sim * 100, 2)}%\n")
-            file.write("\n")
+                file.write("##### Entity winrate : \n")
+                for entity, nb_win in WinRate.items():
+                    file.write(f"- {entity} : {round(nb_win / self.nb_sim * 100, 2)}%\n")
+                file.write("\n")
+
+            if error:
+                file.write("The program was stop prematurely for the following reason : \\\n")
+                file.write(f"{type(error).__name__} : {error}\n")
+
             file.close()
 
-    def save_current_sim(self):
-        self.save_screenshots(self.Screenshots[self.current_sim])
-        self.save_simulation(self.current_sim)
-        self.save_log([self.Simulations[self.current_sim]])
-        self.load_all_saves()                                                   # Update saved files
+    def save_current_sim(self, current_time):
+        if len(self.Simulations) > 0:
+            self.get_current_sim().create_save()
+            if len(self.Saves) > 0:                                             # If saves were loaded before
+                self.begin_loading(current_time)
 
-    def save_all(self):                                                         # Save all collected data
-        for screens in self.Screenshots:
-            self.save_screenshots(screens)
+    def save_all(self, current_time):                                           # Save all collected data
         for sim in self.Simulations:
-            self.save_simulation(sim['id'])
-        self.save_log(self.Simulations)
-        self.load_all_saves()                                                   # Update saved files
+            sim.create_save()
+        if len(self.Saves) > 0:                                                 # If saves were loaded before
+            self.begin_loading(current_time)
 
     def display_graphic(self, graphic):                                         # Create graphic with current sim datas
-        if len(self.Simulations) > 0:
-            for i, g in enumerate(self.Graphics):
-                if g == graphic:
-                    self.current_graphic = i
-                    sim = self.Simulations[self.current_sim]
-                    EntityQuantity = sim["quantity"]
-                    Speeds = sim["speeds"]
-                    Ranges = sim["ranges"]
-                    Sizes = sim["sizes"]
-                    Options = self.get_current_option_list()
-                    self.current_pygame_image, fig = g.show_graphic(EntityQuantity,
-                        Speeds, Ranges, Sizes, Options)
-                    if fig:
-                        for figure in self.Figures:                             # Close all graphics
-                            plt.close(figure)
-                        self.Figures.append(fig)                                # Add current graphic
-                    break
+        if self.is_on_saves and len(self.Saves) > 0:
+            self.current_graphic_image = self.get_current_save().get_image_from_graphic(graphic)
+        elif len(self.Simulations) > 0:
+            self.current_graphic_image = self.get_current_sim().get_image_from_graphic(graphic)
 
     def update_graphic(self, screensize, graphic=None, size=0.6):
         if graphic is None:
             graphic = self.Graphics[self.current_graphic]
         self.display_graphic(graphic)
-        if self.current_pygame_image:
-            self.current_pygame_image = self.resize_image(screensize,
-                self.current_pygame_image, height=size)
+        if self.current_graphic_image:
+            self.current_graphic_image = self.resize_image(screensize,
+                self.current_graphic_image, height=size)
 
     def check_display_next_turn(self, current_time):
         if self.is_auto_play:                                                   # Show each turn for 0.5 second
-            if self.timer.check_loop_end(current_time) > 0:                     # After the loop end
+            if self.anim_timer.check_loop_end(current_time) > 0:                # After the loop end
                 self.next_turn()
 
-    # ... Testing new save functions
+    def begin_loading(self, current_time):                                      # Prepare program to load saves
+        self.is_loading = True
+        self.Saves.clear()
+        self.loader = self.progressive_load()                                   # Asynchrone function to load saves
+        self.load_timer.start(current_time)
+
+    def progressive_load(self):                                                 # Asynchrone function (avoid freezes)
+        for directory in Path(self.path_save).iterdir():                        # In every dir in saves/
+            if self.today == directory.name:
+                self.was_today_saves = True
+            for save_dir in Path(directory).iterdir():                          # For every day
+                for filename in Path(save_dir).iterdir():                       # In all simulations launch that day
+                    if filename.suffix == self.save_format:
+                        result = self.load_save(filename)
+                        yield from result
+
     def load_save(self, name):                                                  # Load a save based on its name
-        if name.suffix != self.save_format:
-            name = name.with_suffix(self.save_format)
-
+        yield                                                                   # Take a break in case it's too long
         with open(name, "r", encoding="utf-8") as f:
+            yield                                                               # Take another break
             result = json.load(f)
-            if result not in self.Saves:
-                self.Saves.append(result)
-            f.close()
+            yield                                                               # And another break
+        result["simulation"] = Simulation.from_dict(result["simulation"])       # Turn data into instance of class
+        yield                                                                   # And another one
+        yield from result["simulation"].load_save(name.parent)
+        yield                                                                   # And another one
+        self.Saves.append(result)
+        yield                                                                   # Another one by the dust !
 
-    def load_all_saves(self):                                                   # Load all saves
-        self.Saves = []
-        for directory in Path(self.path_save).iterdir():
-            for filename in Path(directory).iterdir():
-                self.load_save(filename)
+    def load_all_saves(self, current_time):                                     # Load all saves
+        if self.load_timer.check_loop_end(current_time):                        # Load every 10 ms
+            try:
+                next(self.loader)                                               # Load saves one by one
+            except StopIteration:
+                self.is_loading = False
+                self.load_timer.pause(current_time)
+                self.load_timer.reset(current_time)
+            self.nb_save = len(self.Saves)                                      # Only update when all saves are loaded
 
     @staticmethod
     def force_delete(function, path, _):
         Path(path).chmod(0o777)                                                 # Change permission
         function(path)
 
-    def delete_today_saves(self):                                               # Delete screenshots and saves saved today
-        dir_name = Path(self.path_screenshot) / self.today
-        if Path(dir_name).exists() and Path(dir_name).is_dir():
-            shutil.rmtree(dir_name, onerror=self.force_delete)
+    def delete_today_saves(self, current_time):                                 # Delete saves saved today
+        item_path = Path(self.path_save) / self.today
+        if Path(item_path).exists() and Path(item_path).is_dir():               # Delete today save directory
+            shutil.rmtree(item_path, onerror=self.force_delete)
+            if len(self.Simulations) > 0:                                       # If sims were launched, update their id
+                for i, sim in enumerate(self.Simulations):
+                    sim.update_id(i + 1)
+        self.was_today_saves = False
+        self.begin_loading(current_time)
 
-        dir_name = Path(self.path_save) / self.today
-        if Path(dir_name).exists() and Path(dir_name).is_dir():
-            shutil.rmtree(dir_name, onerror=self.force_delete)
+    def delete_save(self, index, current_time):                                 # Delete saves saved today
+        save = self.Saves[index]["simulation"]
+        if save.is_saved:                                                       # If save exists and was saved
+            self.current_save = 0
+            self.is_on_saves = False
+            save.delete_save()
+            self.Saves.pop(index)
+            self.nb_save = len(self.Saves)
 
-        self.load_all_saves()                                                   # Update saved files
-
-    def delete_all_saves(self):                                                 # Delete all screenshots and saves (not logs)
-        dir_name = self.path_screenshot
-        if Path(dir_name).exists() and Path(dir_name).is_dir():
-            for item in Path(dir_name).iterdir():
-                item_path = Path(dir_name) / item
+    def delete_all_saves(self, current_time):                                   # Delete all saves (but not logs)
+        if Path(self.path_save).exists() and Path(self.path_save).is_dir():
+            for item in Path(self.path_save).iterdir():
+                item_path = Path(self.path_save) / item
                 if Path(item_path).is_dir():
                     shutil.rmtree(item_path, onerror=self.force_delete)
-
-        dir_name = self.path_save
-        if Path(dir_name).exists() and Path(dir_name).is_dir():
-            for item in Path(dir_name).iterdir():
-                item_path = Path(dir_name) / item
-                if Path(item_path).is_dir():
-                    shutil.rmtree(item_path, onerror=self.force_delete)
-
-        self.load_all_saves()                                                   # Update saved files
+            if len(self.Simulations) > 0:                                       # If sims were launched, update their id
+                for i, sim in enumerate(self.Simulations):
+                    if sim.is_saved:                                            # If sim is saved, delete its save
+                        sim.delete_save()
+                    sim.update_id(i + 1)
+        self.was_today_saves = False
+        self.Saves.clear()
+        self.nb_save = 0

@@ -10,7 +10,7 @@ class ParameterScreen:                                                          
         self.Tabs = ["Main", "Simulation", "Entities", "Sounds"]
         self.current_tab = self.Tabs[1]
         # Parameters data
-        self.is_display_turn =  False
+        self.is_display_turn =  False                                           # Display the number of turns
         self.is_map_borders =   False                                           # Allow entities to exit the screen
         self.is_infinity_map =  False                                           # Make screen toroidal
         self.is_nb_in_percent = False                                           # Display nb of entities in percent
@@ -22,15 +22,9 @@ class ParameterScreen:                                                          
         return self.Tabs.index(self.current_tab)
 
     def previous_tab(self):
-        i = self.get_current_tab_index()
-        i -= 1
-        if i < 0:
-            i = len(self.Tabs) - 1
+        i = (self.get_current_tab_index() - 1) % len(self.Tabs)
         self.current_tab = self.Tabs[i]
 
     def next_tab(self):
-        i = self.get_current_tab_index()
-        i += 1
-        if i > len(self.Tabs) - 1:
-            i = 0
+        i = (self.get_current_tab_index() + 1) % len(self.Tabs)
         self.current_tab = self.Tabs[i]

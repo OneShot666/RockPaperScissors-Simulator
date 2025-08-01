@@ -1,5 +1,4 @@
-Glossary
----
+Glossary---
 Behavior : What the entity is currently doing.
 
 Chase : To go after the nearest 'prey' to defeat it.
@@ -16,9 +15,7 @@ Simulation : A battle between entities.
 
 Smart : For now, allow the smart entities to flee if no prey is found.
 
-Toroidal : Sort of infinite map, if you go to the left, you'll end up to the right.
-
-And so on for up and down.
+Toroidal : Sort of infinite map, if you go to the left, you'll end up to the right. And so on for up and down.
 
 Type : The 'species' of the entity, basically rocks, papers and scissors.
 

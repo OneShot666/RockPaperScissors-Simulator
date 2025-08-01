@@ -1,5 +1,4 @@
-Menus
----
+Menus---
 Main menu : Where you can access almost all other menus and start a simulation.
 
 Simulation menu : Main purpose of this program, simulates the battle between entities.
