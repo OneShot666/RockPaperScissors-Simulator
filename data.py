@@ -1,6 +1,3 @@
-# from math import *
-# from random import *
-# from time import *
 from matplotlib.colors import to_rgb
 from webcolors import name_to_rgb
 from pathlib import Path
@@ -23,12 +20,11 @@ class Database:                                                                 
         self.HELP_FORMAT =      ".txt"                                          # Format for help text files
         self.LOG_FORMAT =       ".md"                                           # Format for log files
         # File data
-        self.FILES = ("data", "data/texts", "fonts", "images", "images/entity",
+        self.FILES = ("data", "data/texts", "images", "images/entity",
             "images/graphics", "logs", "musics", "saves", "sounds")    # All files to create at first launch
         self.PATH =             Path.cwd()                                      # Current programm path
         self.PATH_DATA =        Path(self.PATH) / "data"                        # Datas path
         self.PATH_TEXT =        Path(self.PATH_DATA) / "texts"                  # Texts path
-        self.PATH_FONT =        Path(self.PATH) / "fonts"                       # Fonts path (! Remove if no font is add)
         self.PATH_IMAGE =       Path(self.PATH) / "images"                      # Images path
         self.PATH_ICON_ENTITY = Path(self.PATH_IMAGE) / "entity"                # Icons of entities path
         self.PATH_ICON_GRAPHIC = Path(self.PATH_IMAGE) / "graphics"             # Icons of graphics path
@@ -48,11 +44,13 @@ class Database:                                                                 
         self.FONT_COLOR =       self.COLORS["black"]
         self.SELECTED_COLOR =   self.COLORS["gold"]
         # Font data
-        self.FONTSIZES =    {"small": 25, "middle": 40, "big": 60, "giant": 80}
+        FontSizes = (25, 40, 60, 80)
+        self.FONTS = [pygame.font.SysFont(None, size) for size in FontSizes]
         # Entity data
         self.BASENAMES = ["paper", "rock", "scissors"]
         self.ENTITYNAMES = [_.replace(self.IMAGE_FORMAT, "") for _ in os.listdir(self.PATH_ICON_ENTITY)]
-        Colors = ("lime", "wheat", "grey", "red", "deepskyblue")                # Colors of entities
+        Colors = ["lime", "wheat", "grey", "red", "deepskyblue"]                # Colors of entities
+        self.BASECOLORS = {name: self.COLORS[color] for name, color in zip(self.BASENAMES, Colors[1:-1])}
         self.ENTITYCOLORS = {name: self.COLORS[color]
             for name, color in zip(self.ENTITYNAMES, Colors)}                   # Colors associates with entities
         self.ENTITYIMAGES = {name: pygame.image.load(f"{self.PATH_ICON_ENTITY}/{name}{self.IMAGE_FORMAT}").convert_alpha()
@@ -75,8 +73,10 @@ class Database:                                                                 
         self.HELPTABS =   []
         self.HELPTEXTS =  []
         self.HELPIMAGES = (None, "game rules.png", "sheldon rules.png", None, None)
+        # Credits data
+        self.CREDITS = []
 
-    # [later] Makes Sheldon's rules text when they're added
+    # [later] Write Sheldon's rules text when they're added
     def load_help_texts(self):                                                  # Launch later to avoid FileNotFoundError
         Files = [_ for _ in Path(self.PATH_TEXT).iterdir() if _.suffix == self.HELP_FORMAT]
         for file in Files:
@@ -85,3 +85,23 @@ class Database:                                                                 
                 self.HELPTABS.append(Texts[0])
                 Texts.pop(0)                                                    # Remove title
                 self.HELPTEXTS.append(Texts)
+
+    def load_credits(self):                                                     # Create a list of surface to display
+        filename = Path(self.PATH_DATA) / "credits.txt"
+        with open(filename, "r", encoding="utf-8", errors="ignore") as file:
+            for line in file:
+                line = line.rstrip("\n")
+                if line.startswith("## "):
+                    text = line[3:]
+                    font = self.FONTS[2]
+                elif line.startswith("# "):
+                    text = line[2:]
+                    font = self.FONTS[3]
+                elif line.startswith("~ "):
+                    text = line[2:]
+                    font = self.FONTS[0]
+                else:
+                    text = line
+                    font = self.FONTS[1]
+                surf = font.render(text, True, self.FONT_COLOR).convert_alpha()
+                self.CREDITS.append(surf)

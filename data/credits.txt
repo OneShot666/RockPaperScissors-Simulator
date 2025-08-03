@@ -1,11 +1,56 @@
-Main developer :
-- One Shot
+# RockPaperScissors Simulator
 
-Illustrations :
-- Freepik
-- Kyoz
-- Smashicons
 
-Beta testers :
-- Mei33
-- Fynn the frog
+
+
+
+## A program by
+
+Ouroboros games
+
+
+
+## Programming
+
+One Shot
+
+
+
+## Design
+
+One Shot
+
+
+
+## Music & Sound
+
+YouTube
+DailyMotion
+Freesound.org
+
+
+
+## Illustrations
+
+Freepik
+Kyoz
+Smashicons
+
+
+
+## Beta testers
+
+Mei33
+Fynn the frog
+
+
+
+
+
+Thank you for using my program
+
+
+
+
+
+~ © 2025 Ouroboros games. All rights reserved.

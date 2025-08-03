@@ -1,18 +1,16 @@
 from math import inf, sqrt
 from random import randint, choice
-# from time import *
 from timermanager import TimerManager
-from data import Database
 import pygame
 
 
 class Entity:                                                                   # Common class for entities in the game
-    def __init__(self, id_value, name, coords=None, image=None, speed=1, range_value=100, size=30, smart=False):
-        db = Database()
+    def __init__(self, id_value, name, coords=None, image=None, speed=1,
+            range_value=100, size=30, smart=False, db=None):
         # Attribute data
         self.is_smart = smart
         self.id = id_value                                                      # Use to distinguish entities
-        self.name = db.ENTITYNAMES[1] if name is None or name == "" else name.lower()
+        self.name = db.ENTITYNAMES[1] if db and (name is None or name == "") else name.lower()
         self.coords = [0, 0] if coords is None else coords
         # Display data
         self.speed = speed                                                      # Speed on screen
@@ -30,9 +28,10 @@ class Entity:                                                                   
         self.timer_mutation = TimerManager(1.5)                                 # Time while showing notif to mutation
         self.behaviour = "Nothing"                                              # What entity currently doing
 
-    def __repr__(self):                                                         # Not use yet
+    # [Unused] Print infos about entity
+    def __repr__(self):
         return (f"{self.name.capitalize()} [{int(self.coords[0])}, {int(self.coords[0])}] "
-            f"(target: {self.Targets}, predator: {self.Predators}), {self.behaviour}")
+                f"(target: {self.Targets}, predator: {self.Predators}), {self.behaviour}")
 
     def get_image(self, image=None):                                            # Set image based on name
         if image is None:
@@ -228,5 +227,6 @@ class Entity:                                                                   
         self.set_predator(None)
         self.set_target(None)
 
-    def die(self):                                                              # Kill itself
+    # [Unused] Delete itself
+    def die(self):
         del self

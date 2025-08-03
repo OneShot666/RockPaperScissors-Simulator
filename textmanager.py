@@ -1,17 +1,11 @@
-# from math import *
-# from random import *
-# from time import *
-from webcolors import name_to_rgb, IntegerRGB
 from pathlib import Path
-from data import Database
+from webcolors import name_to_rgb, IntegerRGB
 import pygame
 
 
 class TextManager:
-    def __init__(self, screen_size):
+    def __init__(self, screen_size, db):
         # Variables
-        db = Database()
-        self.path_font = db.PATH_FONT                                           # Path to fonts (not really useful -> dir empty)
         self.screen_size = screen_size
         # Colors data
         self.Colors =           db.COLORS
@@ -19,10 +13,8 @@ class TextManager:
         self.borders_color =    db.BORDER_COLOR
         self.font_color =       db.FONT_COLOR
         # Font data
-        self.Fonts = []
-        self.FontSizes = db.FONTSIZES
-        self.font_name: str = None
-        self.main_font: pygame.font.Font = None                                 # Mostly used font in entire program
+        self.Fonts = db.FONTS
+        self.main_font: pygame.font.SysFont = None                              # Mostly used font in entire program
         # Text data
         self.scroll_offset = 0
         self.scroll_speed = 20
@@ -30,9 +22,9 @@ class TextManager:
         # Based function
         self.set_font_size()
 
-    def set_font_size(self, new_size=40):                                       # Change size of the main font
-        font_path = Path(self.path_font) / self.font_name if self.font_name else None
-        self.main_font = pygame.font.Font(font_path, new_size)
+    def set_font_size(self, new_size=1):                                        # Change size of the main font
+        new_size = max(min(new_size, len(self.Fonts) - 1), -len(self.Fonts))    # Between [-n, n-1]
+        self.main_font = self.Fonts[new_size]
 
     def set_borders_color(self, new_color_name="grey"):                         # Change color of the borders
         if new_color_name in self.Colors.keys():
@@ -59,9 +51,8 @@ class TextManager:
         self.set_font_color(unactive)
 
     def display_message(self, screen, percent_x=0.5, percent_y=0.5, message="",
-    font_size=None, align="center", percent_size=None, get_pos_only=False):     # Display message on screen
-        if font_size is not None:                                               # Change font size if a new one is required
-            self.set_font_size(self.FontSizes[font_size])
+    font_size=1, align="center", percent_size=None, get_pos_only=False):        # Display message on screen
+        self.set_font_size(font_size)
 
         if percent_size is None:                                                # If no size limit for message
             text = self.main_font.render(str(message), True, self.font_color)
@@ -92,7 +83,7 @@ class TextManager:
 
             return pos
 
-    # [later] Upgrade function with test2.py
+    # [later] Upgrade function with test.py
     def display_large_text(self, screen, area, text):                           # Display a large text in a given area
         x, y, w, h = area
         x += 5                                                                  # Add a little gap
@@ -149,7 +140,7 @@ class TextManager:
 
     def display_bg_name(self, screen, name):                                    # Display name of the game in the bg
         self.set_font_color(self.borders_color)
-        self.display_message(screen, message=name, font_size="giant")
+        self.display_message(screen, message=name, font_size=3)
         self.set_font_color()                                                   # Default color
         self.set_font_size()                                                    # Default size
 
@@ -164,10 +155,9 @@ class TextManager:
 
     def display_parameter(self, screen, mouse, click, percent_x=0.5, percent_y=0.5,
     param=False, message="Parameter : ", description=None):
-        old_size = self.main_font.get_height()
-        self.set_font_size(self.FontSizes["middle"])
+        self.set_font_size(1)
 
-        pos = self.display_message(screen, percent_x, percent_y, message, "middle", "left")
+        pos = self.display_message(screen, percent_x, percent_y, message, align="left")
 
         self.set_font_color("white")                                            # Diff font color to make it readable
 
@@ -189,31 +179,27 @@ class TextManager:
         if self.get_mouse_hover_position(pos_click, mouse) and description is not None:
             self.description = description
 
-        self.set_font_size(old_size)                                            # Go back to old font size
-
         if self.get_click_on_position(pos_click, mouse, click):
             return not param, True
         return param, False
 
     def display_description(self, screen, mouse):                               # Text to display is mouse overlay
         if self.description:
-            self.set_font_size(25)
-
             gap = 5
             coords = ((mouse[0] + 12) / self.screen_size[0], mouse[1] / self.screen_size[1])
-            pos_m = self.display_message(screen, *coords, self.description,
-                align='left', get_pos_only=True)                                # Called it before to get position
+            pos_m = self.display_message(screen, *coords, self.description, 0,
+                'left', get_pos_only=True)                                      # Called it before to get position
             pos_m = (pos_m[0] - gap, pos_m[1] - gap, pos_m[2] + gap * 2, pos_m[3] + gap * 2)
 
             percent_size = None
             if self.screen_size[0] <= pos_m[0] + pos_m[2]:                      # If text too longs
                 percent_size = [(self.screen_size[0] - pos_m[0] - gap * 2) / self.screen_size[0],
                                 (pos_m[3] * 2) / self.screen_size[1]]
-                pos_m = self.display_message(screen, *coords, self.description,
-                    align='left', percent_size=percent_size, get_pos_only=True)  # Recalculate bg size
+                pos_m = self.display_message(screen, *coords, self.description, 0,
+                    'left', percent_size, True)                                 # Recalculate bg size
 
-            self.display_screen(screen, pos_m, border_width=2, border_radius=5)
-            self.display_message(screen, *coords, self.description, align='left', percent_size=percent_size)
+            self.display_screen(screen, pos_m, None, 2, 5)
+            self.display_message(screen, *coords, self.description, 0, 'left', percent_size)
 
             self.set_font_size()
             self.description = None                                             # Reset description
@@ -232,13 +218,12 @@ class TextManager:
     title="Question ?", text='Text', button1="Yes", button2="No"):
         pos = self.display_box(screen, x_percent, y_percent)
         pos_percent = [x / self.screen_size[i % 2] for i, x in enumerate(pos)]
-        size = None
         self.display_message(screen, pos_percent[0] + pos_percent[2] * 0.5,
-                             pos_percent[1] + self.FontSizes["big"] / self.screen_size[1], title, "big")
+            pos_percent[1] + self.Fonts[2].get_height() / self.screen_size[1], title, 2)
         if text is not None:
             text_pos = (pos_percent[0] + pos_percent[2] * 0.1, pos_percent[1] + pos_percent[3] * 0.3,
                         pos_percent[2] * 0.8, pos_percent[3] * 0.4)
-            self.display_message(screen, text_pos[0], text_pos[1], text, "middle",
+            self.display_message(screen, text_pos[0], text_pos[1], text,
                                  percent_size=(text_pos[2], text_pos[3]))
         button_pos = [pos_percent[0] + pos_percent[2] * 0.05, pos_percent[1] + pos_percent[3] * 0.7,
                       pos_percent[2] * 0.4, pos_percent[3] * 0.25]
@@ -273,5 +258,5 @@ class TextManager:
         if has_border:
             pygame.draw.rect(screen, self.borders_color, pos, int(pos[2] * 0.025), radius)
         self.display_message(screen, pos_percent[0] + pos_percent[2] * 0.5,
-            pos_percent[1] + pos_percent[3] * 0.5, name, "middle")
+            pos_percent[1] + pos_percent[3] * 0.5, name)
         return self.get_click_on_position(pos, mouse, click)

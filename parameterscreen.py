@@ -1,9 +1,3 @@
-# from math import *
-# from random import *
-# from time import *
-# import pygame
-
-
 class ParameterScreen:                                                          # To manage parameters
     def __init__(self):
         # Tabs data

@@ -1,24 +1,21 @@
-# from math import *
-from random import randint, choice, shuffle
-# from time import *
 from collections import defaultdict
+from random import randint, choice, shuffle
 from soundmanager import SoundManager
 from entity import Entity
-from data import Database
-# import pygame
 
 
 class EntityManager:
-    def __init__(self, screen_size, balanced=True, nb_entities=100, entity_speed=1, entity_range=100, entity_size=30):
-        db = Database()
+    def __init__(self, screen_size, balanced=True, nb_entities=100, entity_speed=1,
+            entity_range=100, entity_size=30, db=None):
         # Booleans data
         self.balanced =     balanced                                            # If same nb of entity for each kind
         self.is_sheldon =   False                                               # If using Sheldon rules
         self.is_mutating =  False                                               # If entity can mutate (modify attributs)
         # Variables data
+        self.db = db
         self.mutate_chance = 10                                                 # Percent of chance for an entity to mutate
         self.screen_size = screen_size
-        self.SoundManager = SoundManager()
+        self.SoundManager = SoundManager(db)
         self.EntityNames = db.ENTITYNAMES
         self.nb_entities = nb_entities
         self.nb_max = 150
@@ -38,8 +35,6 @@ class EntityManager:
         self.is_spawn_with_click =  False                                       # If clicking spawns an entity
         self.entity_to_follow_mouse: Entity/str =   None                        # What entity follow mouse
         self.entity_to_spawn: Entity/str =          None                        # What entity to spawn with click
-        # Based function
-        # self.create_entities()
 
     def create_entities(self):                                                  # Create a number of entities
         Entities = self.EntityNames if self.is_sheldon else self.BaseNames
@@ -51,7 +46,7 @@ class EntityManager:
             coords = [randint(0, self.screen_size[0]), randint(0, self.screen_size[1])] # Random coordinates
             name = Entities[i % portion] if self.balanced else choice(Entities)
             entity = Entity((i + 1), name, coords, None, self.entity_speed,
-                self.entity_range, self.entity_size, self.is_smart_entity)
+                self.entity_range, self.entity_size, self.is_smart_entity, self.db)
             self.Entities.append(entity)
 
     def set_nb_entities(self, new_value):                                       # Change number of entities
@@ -67,7 +62,8 @@ class EntityManager:
 
     def check_spawn_entity(self, simulating, pausing, click, mouse):            # Spawn selected entity at mouse coords
         if simulating and (not pausing and click and self.is_spawn_with_click and self.entity_to_spawn is not None):
-            entity = Entity(len(self.Entities) + 1, self.entity_to_spawn, list(mouse), smart=self.is_smart_entity)
+            entity = Entity(len(self.Entities) + 1, self.entity_to_spawn,
+                list(mouse), smart=self.is_smart_entity, db=self.db)
             self.Entities.append(entity)
             self.SoundManager.play_entity_sound("pop")                          # Play spawn sound
 

@@ -1,15 +1,11 @@
-# from math import *
 from random import choice
-# from time import *
 from pathlib import Path
-from data import Database
 import pygame
 
 
 class SoundManager:
-    def __init__(self):
+    def __init__(self, db):
         pygame.mixer.init()
-        db = Database()
         # Boolean data
         self.is_mute = False
         self.is_loop = False                                                    # Repeat music endlessly
@@ -54,7 +50,8 @@ class SoundManager:
             sound = choice(Sounds)
             self.play_sound(sound)
 
-    def is_sound_playing(self, name):                                           # Get if given sound is playing
+    # [Unused] Get if given sound is playing
+    def is_sound_playing(self, name):
         if name in self.Sounds.keys():
             if self.Sounds[name]:
                 return self.Sounds[name].get_num_channels()
@@ -96,7 +93,8 @@ class SoundManager:
             self.current_sound.play(loops=loops)
             self.current_sound.set_volume(self.sound_volume)
 
-    def stop_sound(self, name=None):                                            # Stop given sound
+    # [Unused] Stop given sound
+    def stop_sound(self, name=None):
         if name in self.Sounds.keys():
             self.Sounds[name].stop()
         elif self.current_sound:

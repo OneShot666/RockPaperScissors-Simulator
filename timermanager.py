@@ -1,9 +1,3 @@
-# from math import *
-# from random import *
-# from time import *
-# import pygame
-
-
 class TimerManager:                                                             # To manage all timers in program
     def __init__(self, duration=0, min_duration=None, max_duration=None):
         self.is_paused_flag = True                                              # Pause by default

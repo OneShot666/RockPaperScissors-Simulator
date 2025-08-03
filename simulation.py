@@ -1,7 +1,4 @@
 # -*- coding: cp1252 -*-
-# from math import *
-# from random import *
-# from time import *
 from pathlib import Path
 from copy import deepcopy
 from datetime import date, datetime
@@ -31,6 +28,7 @@ class Simulation:
     is_toroidal: bool = field(default=False)
     is_sheldon: bool =  field(default=False)
     # Other data
+    db: Database =  None
     is_saved =      None
     is_loaded =     None
     path_save =     None
@@ -48,8 +46,9 @@ class Simulation:
         # Save data
         self.is_saved =     False
         self.is_loaded =    False
-        self.save_format = db.SAVE_FORMAT
+        self.save_format =  db.SAVE_FORMAT
         # Path data
+        self.db = db
         self.today = date.today().strftime(db.DATE_FORMAT)
         self.path_save = Path(db.PATH_SAVE) / self.today
         self.path_sim = Path(self.path_save) / f"save {self.id}"
@@ -66,24 +65,24 @@ class Simulation:
         if self.Sizes is None:
             self.Sizes =  []
         # Screenshot data
-        self.screen_format = db.SCREEN_FORMAT
+        self.screen_format =    db.SCREEN_FORMAT
         self.Screenshots = []
         # Graphic data
-        self.graphic_format = db.IMAGE_FORMAT
-        self.GraphicNames = db.GRAPHICS_NAMES
-        self.GraphicTypes = db.GRAPHICS_TYPES
-        self.OptionNames =  list(db.OPTIONCOLORS.keys())                        # Options for graphic n°2
+        self.graphic_format =   db.IMAGE_FORMAT
+        self.GraphicNames =     db.GRAPHICS_NAMES
+        self.GraphicTypes =     db.GRAPHICS_TYPES
+        self.OptionNames =      list(db.OPTIONCOLORS.keys())                    # Options for graphic n°2
         self.current_options = deepcopy(self.OptionNames)
         self.Graphics = []
         # Basic function
         self.create_graphics()
 
     def create_graphics(self):                                                  # Create graphics
-        self.Graphics.append(Graphic(self.GraphicNames[0], self.GraphicTypes[2], True)) # True : about entity
-        self.Graphics.append(Graphic(self.GraphicNames[1], self.GraphicTypes[2]))
-        self.Graphics.append(Graphic(self.GraphicNames[2], self.GraphicTypes[0], True))
-        self.Graphics.append(Graphic(self.GraphicNames[3], self.GraphicTypes[0]))
-        self.Graphics.append(Graphic(self.GraphicNames[4], self.GraphicTypes[3], True))
+        self.Graphics.append(Graphic(self.GraphicNames[0], self.GraphicTypes[2], True, self.db))    # True : about entity
+        self.Graphics.append(Graphic(self.GraphicNames[1], self.GraphicTypes[2], db=self.db))
+        self.Graphics.append(Graphic(self.GraphicNames[2], self.GraphicTypes[0], True, self.db))
+        self.Graphics.append(Graphic(self.GraphicNames[3], self.GraphicTypes[0], db=self.db))
+        self.Graphics.append(Graphic(self.GraphicNames[4], self.GraphicTypes[3], True, self.db))
         self.update_graphics()
 
     def set_path_sim(self, path_sim):
@@ -95,6 +94,7 @@ class Simulation:
         return cls(**data)
 
     def get_dict(self):                                                         # Return a json version of this instance
+        self.db = None                                                          # To avoid saving font object
         return asdict(self)
 
     def get_id_bonus(self):                                                     # Based on names of other saves

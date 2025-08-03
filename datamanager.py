@@ -1,12 +1,8 @@
-# from math import *
-# from random import *
-# from time import *
 from pathlib import Path
 from humanize import precisedelta
 from datetime import date, datetime
 from timermanager import TimerManager
 from simulation import Simulation
-from data import Database
 import matplotlib.pyplot as plt
 import matplotlib
 import statistics
@@ -18,9 +14,8 @@ import re
 
 
 class DataManager:
-    def __init__(self):
+    def __init__(self, db):
         matplotlib.use("Agg")                                                   # Use non-interactive back-end
-        db = Database()
         # Boolean data
         self.was_today_saves =  False                                           # If saves from today already exists
         self.is_loading =       False                                           # When loading saves
@@ -29,6 +24,7 @@ class DataManager:
         self.is_sim_saved =     False                                           # If the last simulation was saved
         self.is_on_saves =      False                                           # If on saves or today's sims
         # Path data
+        self.db = db
         self.today = date.today().strftime(db.DATE_FORMAT)
         self.path_log =             db.PATH_LOG
         self.path_save =            db.PATH_SAVE
@@ -58,7 +54,7 @@ class DataManager:
         self.loader = None
         self.load_timer = TimerManager(0.01)                                    # A timer for loading saves
         self.save_format = db.SAVE_FORMAT
-        self.image_size = db.FONTSIZES["middle"]
+        self.image_size = db.FONTS[2].get_height()
         self.bin_image = pygame.image.load(Path(self.path_image / "bin.png")).convert_alpha()   # Delete icon for saves
         self.bin_image = pygame.transform.scale(self.bin_image, (self.image_size, self.image_size))
         self.EntityNames = db.ENTITYNAMES
@@ -160,22 +156,10 @@ class DataManager:
             if self.current_turn > self.get_nb_turns() - 1:
                 self.current_turn = 0
 
-    @staticmethod                       # Return the name of the file with the highest number in his name (unused yet)
-    def get_highest_file_nb(path):
-        path = Path(path)
-        if Path(path).exists():
-            try:
-                max_folder = max((f for f in path.iterdir() if f.is_dir()),
-                    key=lambda x: int(re.search(r'\d+', x.name).group())
-                    if re.search(r'\d+', x.name) else -1).name
-                return max_folder
-            except ValueError:
-                return None
-        return None
-
     def add_simulation(self, duration, smart=False, is_range=False,
             borders=False, toroidal=False, sheldon=False):                      # Save last sim
-        self.sim = Simulation(self.nb_sim + 1, duration, 0, smart, is_range, borders, toroidal, sheldon)
+        self.sim = Simulation(self.nb_sim + 1, duration, 0, smart, is_range,
+            borders, toroidal, sheldon, self.db)
         self.sim.update_id(was_saved=True)                                      # Update id
         self.Graphics = self.sim.Graphics
         self.is_on_saves = False

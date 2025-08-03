@@ -1,9 +1,5 @@
-# from math import *
-# from random import *
-# from time import *
 from io import BytesIO
 from pathlib import Path
-from data import Database
 from matplotlib.backends.backend_agg import FigureCanvasAgg as Figure
 import matplotlib.pyplot as plt
 import matplotlib
@@ -11,13 +7,11 @@ import numpy as np
 import pygame
 
 
-# ! Modify class to always have options (one list with all and one to get current options to show in graphic)
 class Graphic:
     icon_size: int = 70                                                         # To be directly accessible by save menu
 
-    def __init__(self, name, type_value, entity_type=False):
+    def __init__(self, name, type_value, entity_type=False, db=None):
         matplotlib.use("Agg")                                                   # Use non-interactive back-end
-        db = Database()
         # Attributes
         self.is_entity = entity_type                                            # If graphic display entity data or not
         self.name = name
@@ -186,7 +180,7 @@ class Graphic:
 
         return fig
 
-    # ! No purpose found for scatter (cloud) yet
+    # [Unused] No purpose found for scatter (cloud) yet
     @staticmethod
     def graphic_scatter_plot():                                                 # scatter plot graphic
         fig, ax = plt.subplots()
@@ -203,7 +197,7 @@ class Graphic:
 
         return fig
 
-    # ! No purpose found for histogram yet
+    # [Unused] No purpose found for histogram yet
     @staticmethod
     def graphic_histogram():                                                    # histogram graphic
         fig, ax = plt.subplots()
