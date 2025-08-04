@@ -19,7 +19,9 @@ import pygame
 # . Upgrade ProjectMaker functions before starting new project GraphicalDance (below)
 # . Make GraphicalDance (pretty clicker: points turning around circle and merging)
 
-# [later] Upgrade flee method → Entities movements are weird because of furthest point ?
+# ... Skipping v0.1.6 to 0.9.9 updates and making Executioner class
+# [next update] When changing screen size, make all program sizes dynamic and dependant of self.screen_size [line 820]
+# [next update] Upgrade flee method → Entities movements are weird because of furthest point ? [entity.py]
 
 
 # [v0.0.1] Basic functions
@@ -36,8 +38,10 @@ import pygame
 # [v0.1.2] Add sounds + chill music + mutation option (can change type randomly) -> create soundmanager class
 # [v0.1.3] Add graphics + saves result + save menu → create datamanager class (+ take screenshots each turn)
 # [v0.1.4] Add possibility to add more entity type (Sheldon rps) -> add Sheldon parameter
-# ... [v0.1.5] Add tutorial + gamma + remove Echap shortcut + finish '!', '?' and '[later]' comments
-# . [v0.9.9] Make documentations and complete functions description (purpose, args descr, args type)
+# [v0.1.5] Add gamma + remove Echap shortcut + finish 'quests' comments
+# . [v0.1.6] Upgrade smart entity moves + upgrade fullscreen method
+# . [v0.1.7] Makes tutorial to show how the program works + add button to play it again
+# ... [v0.9.9] Make documentations and complete functions description (purpose, args descr, args type)
 # . [v1.0.0] Make the code into a .exe → create executioner class
 class RPSSimulator:                                                             # Main class
     def __init__(self, name=None):
@@ -80,7 +84,10 @@ class RPSSimulator:                                                             
         self.screen_size =  db.SCREEN_SIZE
         pygame.display.set_caption(self.name)                                   # Give window a title
         pygame.display.set_icon(db.ENTITYIMAGES[db.ENTITYNAMES[2]])             # Give window an icon
-        self.gamma = 50
+        # Gamma data
+        self.gamma = 80
+        self.overlay: pygame.Surface = None
+        self.set_gamma(self.gamma)                                              # Create overlay
         # Game data
         self.pressed =  pygame.key.get_pressed()                                # Keyboard inputs
         self.mouse =    pygame.mouse.get_pos()                                  # Mouse coordinates
@@ -108,7 +115,7 @@ class RPSSimulator:                                                             
         self.EntityNames =      db.ENTITYNAMES
         self.EntityColors =     db.ENTITYCOLORS
         self.EntityImages =     db.ENTITYIMAGES
-        self.Mutated_Entities = []                                              # Last entities to have mutated
+        self.Mutated_Entities: list[Entity] = []                                # Last entities to have mutated
         # Icons & Parameters data
         self.icon_size = 50
         icon_save = pygame.image.load(Path(self.path_image) / "save.png").convert_alpha()
@@ -150,11 +157,11 @@ class RPSSimulator:                                                             
         self.line_space = 10                                                    # Distance between lines in credits
         self.scroll_speed = 1                                                   # Speed of texts scrolling
         # Main function
-        self.run()  # !!
+        self.run()
         # self.safe_run(self.run)
 
     @staticmethod
-    def get_project_name(name):                                                 # Return directory name of project
+    def get_project_name(name: str):                                            # Return directory name of project
         return str(Path(__file__).parent.name) if name is None else name
 
     def get_current_date(self):                                                 # Return today's date
@@ -189,7 +196,8 @@ class RPSSimulator:                                                             
             file.write(self.birthday + "\n")
 
     @staticmethod
-    def modify_file_line(filename, line_number, text):                          # Modify a specific line of a file
+    def modify_file_line(filename: Path | str, line_number: int, text: str):
+        """[Unused] Modify a specific line of a file"""
         with open(filename, 'r') as file:
             lines = file.readlines()
 
@@ -202,20 +210,19 @@ class RPSSimulator:                                                             
         with open(filename, 'w') as file:                                       # Update
             file.writelines(lines)
 
-    def get_mouse_hover_position(self, pos):
+    def get_mouse_hover_position(self, pos: list[int]):
         return pos[0] <= self.mouse[0] <= pos[0] + pos[2] and pos[1] <= self.mouse[1] <= pos[1] + pos[3]
 
-    def get_click_on_position(self, pos):
+    def get_click_on_position(self, pos: list[int]):
         return self.get_mouse_hover_position(pos) and self.left_click
 
-    def get_not_click_on_position(self, pos):
+    def get_not_click_on_position(self, pos: list[int]):
         return not self.get_mouse_hover_position(pos) and self.left_click
 
     def safe_run(self, func):
         try:
             func()
         except Exception as error:                                              # Write error in log
-            print(f"\033[31m{error}\033[0m")                                    # [later] Remove when launching program
             self.close_game(error)
 
     def run(self):                                                              # Main function
@@ -257,15 +264,20 @@ class RPSSimulator:                                                             
                     self.current_save_scroll = max(min(self.current_save_scroll,
                         max(0, len(self.DataManager.Saves) - self.nb_max_save)), 0) # Scroll limits
 
-            if event.type == pygame.KEYDOWN:                                    # Keyboard entries
-                if self.crediting:
+            if event.type == pygame.KEYUP:                                      # Keyboard release
+                if event.key in [pygame.K_UP, pygame.K_DOWN]:
+                    if self.crediting:
+                        self.scroll_speed = 1                                   # Reset speed
+
+            if event.type == pygame.KEYDOWN:                                    # Keyboard pressed
+                if self.crediting and event.key not in [pygame.K_UP, pygame.K_DOWN]:
                     self.close_credits()
 
                 if event.key == pygame.K_SPACE:
                     if not self.simulating:                                     # Main menu
                         self.start_simulation()
                     elif not (self.parametering or self.save_menuing or
-                            self.asking_goback or self.asking_restart):
+                              self.asking_goback or self.asking_restart):
                         self.pausing = not self.pausing
                         if self.pausing:
                             self.pause_simulation()
@@ -273,10 +285,14 @@ class RPSSimulator:                                                             
                             self.resume_simulation()
 
                 if event.key == pygame.K_UP:
-                    if self.save_menuing:
+                    if self.crediting:
+                        self.scroll_speed = 0.5                                 # Slow down scroll speed
+                    elif self.save_menuing:
                         self.DataManager.next_turn()                            # Display next turn of simulation
                 elif event.key == pygame.K_DOWN:
-                    if self.save_menuing:
+                    if self.crediting:
+                        self.scroll_speed = 5                                   # Speed up scroll speed
+                    elif self.save_menuing:
                         self.DataManager.previous_turn()                        # Display previous turn of simulation
 
                 if event.key == pygame.K_LEFT:
@@ -387,9 +403,11 @@ class RPSSimulator:                                                             
 
             self.display_loading_icon()
 
-            self.TextManager.display_description(self.screen, self.mouse)       # Display at the end to be display above all
+            self.TextManager.display_description(self.screen, self.mouse)       # Text near mouse
 
-    def display_hidden_text(self, condition, x, y, text, size=1, align="center"):
+            self.screen.blit(self.overlay, (0, 0))                              # Display at the end to be display above all
+
+    def display_hidden_text(self, condition: bool, x: float, y: float, text: str, size=1, align="center"):
         pos = self.TextManager.display_message(self.screen, x, y, text, size, align, get_pos_only=True)
         if condition or self.get_mouse_hover_position(pos):
             self.TextManager.display_message(self.screen, x, y, text, size, align)
@@ -471,7 +489,7 @@ class RPSSimulator:                                                             
 
                     break                                                       # Only display one at a time
 
-    def display_entity_infos(self, entity):
+    def display_entity_infos(self, entity: Entity):
         gap = 5                                                                 # Mouse size
         width = self.screen_size[0] * 0.2
         height = self.screen_size[1] * 0.45 - gap
@@ -500,7 +518,7 @@ class RPSSimulator:                                                             
         size = self.small_text_size + 2
         for i, info in enumerate(Infos):
             coords = ((pos[0] + pos[2] * 0.05) / self.screen_size[0],
-                (pos[1] + pos[3] * 0.2 + (i * size)) / self.screen_size[1])
+            (pos[1] + pos[3] * 0.2 + (i * size)) / self.screen_size[1])
             self.TextManager.display_message(self.screen, *coords, info, 0, "left")
 
         self.TextManager.set_font_color(self.bg_color)
@@ -511,7 +529,7 @@ class RPSSimulator:                                                             
         self.TextManager.set_font_size()
 
     # Default screen's position : top right of the mouse
-    def display_entity_more_infos(self, entity):                                # Draw circles
+    def display_entity_more_infos(self, entity: Entity):                        # Draw circles
         center = entity.image.get_rect(topleft=entity.coords).center
         if self.EntityManager.is_entity_range:                                  # Only show range if option is active
             pygame.draw.circle(self.screen, self.Colors["wheat"], center, entity.range, 3)
@@ -540,7 +558,7 @@ class RPSSimulator:                                                             
             value = (quantity / len(self.EntityManager.Entities)) * 100
             percent = round(value, 2) if round(value, 2) % 1 else int(value)
             pos = (0.02 * self.screen_size[0], (0.1 + 0.03 * (i + 1)) * self.screen_size[1],
-                percent * 2, 0.03 * self.screen_size[1])
+            percent * 2, 0.03 * self.screen_size[1])
             if condition:                                                       # Only draw colored bg if ui is showed
                 pygame.draw.rect(self.screen, self.EntityColors[name], pos)
             text = f"{percent}%" if self.ParametersManager.is_nb_in_percent else f"x{quantity}"
@@ -585,7 +603,7 @@ class RPSSimulator:                                                             
 
         trio = (self.screen, self.mouse, self.left_click)
         condition = not (self.parametering or self.save_menuing or self.helping or
-            self.asking_restart or self.asking_goback or self.asking_saving)
+                         self.asking_restart or self.asking_goback or self.asking_saving)
         hover_color = (222, 222, 222)
 
         if self.TextManager.display_button(*trio, f"Resume", (0.41, 0.44, 0.18, 0.1),
@@ -767,12 +785,9 @@ class RPSSimulator:                                                             
         func1 = self.reduce_gamma
         func2 = self.increase_gamma
         nb = self.gamma
-        nb_max = 100
-        self.TextManager.use_unactive_color()
-        result = self.display_gradient_line(rect, func1, func2, f"Gamma : {nb}", nb, nb_max)
-        self.TextManager.set_font_color()
+        result = self.display_gradient_line(rect, func1, func2, f"Gamma : {nb}", nb)
         if result:
-            self.gamma = result
+            self.set_gamma(result)
 
         # Second column
         x2 = 0.5
@@ -781,14 +796,14 @@ class RPSSimulator:                                                             
             self.TextManager.use_unactive_color()
         descr = "Click to set parameters to developer's personal settings"
         if self.TextManager.display_button(*trio, "Developer settings", (x2, 0.29, 0.18, 0.05),
-        has_border=True, bg_color_hover=self.bg_hover_color, description=descr) and not self.simulating:
+                has_border=True, bg_color_hover=self.bg_hover_color, description=descr) and not self.simulating:
             self.set_personal_settings()
 
         if not self.simulating:
             self.TextManager.use_unactive_color()
         descr = "Click to update the current simulation's data (only useful for saves)"
         if self.TextManager.display_button(*trio, "Update simulation", (x2, 0.35, 0.18, 0.05),
-        has_border=True, bg_color_hover=self.bg_hover_color, description=descr) and self.simulating:
+                has_border=True, bg_color_hover=self.bg_hover_color, description=descr) and self.simulating:
             if self.DataManager.nb_sim > 0:
                 self.DataManager.update_simulation(self.DataManager.sim.id,
                     self.timer_simulation.get_elapsed_time(self.current_time),
@@ -799,12 +814,11 @@ class RPSSimulator:                                                             
 
         descr = "Click to play credits (will pause current simulation if one)"
         if self.TextManager.display_button(*trio, "Credits", (x2, 0.41, 0.18, 0.05),
-        has_border=True, bg_color_hover=self.bg_hover_color, description=descr):
+                has_border=True, bg_color_hover=self.bg_hover_color, description=descr):
             self.open_credits()
 
         # self.TextManager.display_message(self.screen, 0.5, 0.5, "Work in progress...", 2)
 
-    # [later] Make all program sizes dynamic and change them
     def change_fullscreen(self):
         if self.is_fullscreen:
             self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -965,7 +979,7 @@ class RPSSimulator:                                                             
             x2, 0.3, self.EntityManager.is_follow_mouse, "Entities follow mouse : ", descr)
         if self.EntityManager.is_follow_mouse:                                  # Select following entity
             self.TextManager.display_message(self.screen, x2, 0.35, f"Entity to follow : "
-                f"{self.EntityManager.entity_to_follow_mouse}", align="left")
+                                                                    f"{self.EntityManager.entity_to_follow_mouse}", align="left")
             entity = self.display_entities_button(self.screen_size[0] * x2, self.screen_size[1] * 0.4,
                 current_entity_name=self.EntityManager.entity_to_follow_mouse)
             self.EntityManager.entity_to_follow_mouse = entity
@@ -1047,7 +1061,7 @@ class RPSSimulator:                                                             
         self.EntityManager.SoundManager.is_loop, _ = self.TextManager.display_parameter(*trio,
             x2, 0.51, self.EntityManager.SoundManager.is_loop, "Endless music : ", descr)
 
-    def display_gradient_line(self, rect, func1, func2, title="Quantity", nb=50, nb_max=100, nb_min=0):
+    def display_gradient_line(self, rect: list[int], func1, func2, title="Quantity", nb=50, nb_max=100, nb_min=0):
         trio = (self.screen, self.mouse, self.left_click)
         x1 = rect[0]
 
@@ -1092,16 +1106,20 @@ class RPSSimulator:                                                             
         self.EntityManager.update_range(120)
         self.EntityManager.update_size(42)
 
+    def set_gamma(self, value: int):
+        self.gamma = max(min(value, 100), 0)
+        brightness = int((1 - self.gamma / 100) * 127)
+        self.overlay = pygame.Surface(self.screen_size, pygame.SRCALPHA)
+        self.overlay.fill((0, 0, 0, brightness))
+
     def increase_gamma(self):                                                   # Increase and check gamma value
-        self.gamma += 1
-        self.gamma = min(self.gamma, 100)
+        self.set_gamma(self.gamma + 1)
 
     def reduce_gamma(self):                                                     # Reduce and check gamma value
-        self.gamma -= 1
-        self.gamma = max(self.gamma, 0)
+        self.set_gamma(self.gamma - 1)
 
     # Buttons with image of each entity
-    def display_entities_button(self, x, y, image_size=50, gap=10, current_entity_name=None):
+    def display_entities_button(self, x: int, y: int, image_size=50, gap=10, current_entity_name: str = None):
         width = 3                                                               # Border width
         choice = current_entity_name
         Entities = self.EntityImages if self.EntityManager.is_sheldon else \
@@ -1110,9 +1128,9 @@ class RPSSimulator:                                                             
             resize_image = pygame.transform.scale(image, (image_size, image_size))
             coords = (x + (image_size + gap) * i, y)
             pos = (coords[0] - width, coords[1] - width,
-                image_size + width * 2, image_size + width * 2)
+            image_size + width * 2, image_size + width * 2)
             border_color = self.selected_color if current_entity_name and \
-                current_entity_name == name else self.TextManager.borders_color
+                                                  current_entity_name == name else self.TextManager.borders_color
             pygame.draw.rect(self.screen, border_color, pos, width, width)
             self.screen.blit(resize_image, coords)
             if self.get_click_on_position(pos):
@@ -1135,7 +1153,7 @@ class RPSSimulator:                                                             
         width = 2                                                               # Display horizontal line based on page
         length = int(self.screen_size[0] * 0.7 / self.max_help_screen)
         pos = (int(self.screen_size[0] * 0.15 + length * self.current_help_screen),
-            int(self.screen_size[1] * 0.21), length, width * 2)
+        int(self.screen_size[1] * 0.21), length, width * 2)
         pygame.draw.rect(self.screen, self.TextManager.bg_color, pos, width, width)
 
         title = self.HelpTabs[self.current_help_screen]                         # Display title
@@ -1220,7 +1238,7 @@ class RPSSimulator:                                                             
     def display_tab_screenshots_screen(self):                                   # Tab of screenshots of a simulation
         trio = (self.screen, self.mouse, self.left_click)
         sim = self.DataManager.get_current_save() if self.DataManager.is_on_saves and \
-            len(self.DataManager.Saves) > 0 else self.DataManager.get_current_sim() if \
+                                                     len(self.DataManager.Saves) > 0 else self.DataManager.get_current_sim() if \
             len(self.DataManager.Simulations) > 0 else None
 
         descr = "When on, auto play simulation turn by turn"
@@ -1291,7 +1309,7 @@ class RPSSimulator:                                                             
 
             for i, graphic in enumerate(Datas.Graphics):                        # Graphics icons
                 coords = (self.screen_size[0] * 0.8,
-                    self.screen_size[1] * 0.3 + (graphic.icon_size + 10) * i)
+                self.screen_size[1] * 0.3 + (graphic.icon_size + 10) * i)
                 pos = (*coords, graphic.icon_size, graphic.icon_size)
 
                 if self.get_mouse_hover_position(pos):                          # Add bg color
@@ -1323,12 +1341,12 @@ class RPSSimulator:                                                             
                     self.BaseColors if cur_graphic.is_entity else self.OptionColors
                 for i, (option, color) in enumerate(Options.items()):
                     option_pos = (self.screen_size[0] * 0.7,
-                        int(self.screen_size[1] * 0.35 + (icon_size + 5) * i), icon_size, icon_size)
+                    int(self.screen_size[1] * 0.35 + (icon_size + 5) * i), icon_size, icon_size)
                     pygame.draw.rect(self.screen, color, option_pos, border_radius=int(icon_size * 0.1))
 
                     if self.get_mouse_hover_position(option_pos):
                         pos_mouse = (self.mouse[0] / self.screen_size[0],
-                            (self.mouse[1] - 5) / self.screen_size[1])
+                        (self.mouse[1] - 5) / self.screen_size[1])
                         self.TextManager.display_message(self.screen, *pos_mouse, option.capitalize(), 0)
 
                     if self.get_click_on_position(option_pos):
@@ -1414,7 +1432,7 @@ class RPSSimulator:                                                             
             pos = [self.screen_size[0] * 0.2, self.screen_size[1] * 0.29 + i * (height * 1.1), width, height]
             index = self.DataManager.Saves.index(save)                          # Real index of save
             color = self.selected_color if self.DataManager.is_on_saves and \
-                self.DataManager.current_save == index else self.bg_color
+                                           self.DataManager.current_save == index else self.bg_color
             pygame.draw.rect(self.screen, color, pos, 2, 5)                     # Background
             x = (pos[0] + width * 0.1) / self.screen_size[0]
             y = (pos[1] + height * 0.5) / self.screen_size[1]
@@ -1456,7 +1474,8 @@ class RPSSimulator:                                                             
         pygame.draw.rect(self.screen, self.bg_color,
             (x, bar_y, width, scrollbar_height), 0, width)                      # Cursor
 
-    def display_desactivated_parameter(self, x, y, param, text, condition, descr=None): # Disable parameter if condition is true
+    def display_desactivated_parameter(self, x: float, y: float, param: bool,
+            text: str, condition: bool, descr: str = None):                     # Disable parameter if condition is true
         trio = (self.screen, self.mouse, self.left_click)
 
         if condition:
@@ -1469,7 +1488,8 @@ class RPSSimulator:                                                             
 
         return param, as_change
 
-    def display_desactivated_button(self, text, pos, condition, func=None):     # Disable button if condition is true
+    def display_desactivated_button(self, text: str, pos: list[float],
+            condition: bool, func=None):                                        # Disable button if condition is true
         trio = (self.screen, self.mouse, self.left_click)
         activate_function = False
 
@@ -1492,87 +1512,58 @@ class RPSSimulator:                                                             
     def display_alert_messages(self):                                           # Screens to alert user about something
         trio = (self.screen, self.mouse, self.left_click)
 
-        if self.asking_restart:
-            q = "Are you sure you want to restart the ongoing simulation ?"
-            result = self.TextManager.display_ask_box(*trio, 0.35, 0.35,
-                "Restart simulation", q, "Yes restart", "Cancel")
+        q = "Are you sure you want to restart the ongoing simulation ?"
+        title = "Restart simulation"
+        self.asking_restart, _ = self.display_warning_box(self.asking_restart, q, title,
+            self.start_simulation, yes="Yes restart")
+
+        q = "Are you sure you want to go back to menu ?"
+        title = "Go back to menu"
+        self.asking_goback, _ = self.display_warning_box(self.asking_goback, q, title, self.go_to_menu)
+
+        q = "Go back to menu without saving ? Your progression will be lost."
+        title = "Go back to menu"
+        self.asking_saving, _ = self.display_warning_box(self.asking_saving, q, title, self.go_to_menu)
+
+        q = "Are you sure you want to delete this save ? It will be lost."
+        name = self.DataManager.Saves[self.save_to_delete]["name"] if self.save_to_delete and \
+            self.asking_rmSave else ""
+        title = f"Delete save '{name}'"
+        self.asking_rmSave, as_change = self.display_warning_box(self.asking_rmSave, q, title,
+            self.DataManager.delete_save, [self.save_to_delete, self.current_time])
+        if as_change:
+            self.save_to_delete = None                                          # Save have been deleted
+
+        q = "Are you sure you want to delete these saves ? They will be lost."
+        title = "Delete today's saves"
+        self.asking_rmDayS, _ = self.display_warning_box(self.asking_rmDayS, q, title,
+            self.DataManager.delete_today_saves, [self.current_time])
+
+        q = "Are you sure you want to delete these saves ? They will be lost."
+        title = "Delete all saves"
+        self.asking_rmAllS, _ = self.display_warning_box(self.asking_rmAllS, q, title,
+            self.DataManager.delete_all_saves, [self.current_time])
+
+    def display_warning_box(self, param: bool, question: str, title: str, func, args: list = None,
+            yes="Yes", no="Cancel", x=0.35, y=0.35):                            # Display warning boxes
+        trio = (self.screen, self.mouse, self.left_click)
+
+        if param:
+            result = self.TextManager.display_ask_box(*trio, x, y, title, question, yes, no)
             if result is None:
                 pass
-            elif result:
-                self.asking_restart = False
-                self.start_simulation()
-            else:
-                self.asking_restart = False
-            self.left_click = False
+            elif result:                                                        # Yes -> close box + do something
+                if args:
+                    func(*args)
+                else:
+                    func()
+                self.left_click = False
+                return False, True
+            else:                                                               # No -> close box
+                self.left_click = False
+                return False, False
+        return param, False
 
-        if self.asking_goback:
-            q = "Are you sure you want to go back to menu ?"
-            result = self.TextManager.display_ask_box(*trio, 0.35, 0.35,
-                "Go back to menu", q, "Yes", "Cancel")
-            if result is None:
-                pass
-            elif result:
-                self.asking_goback = False
-                self.go_to_menu()
-            else:
-                self.asking_goback = False
-            self.left_click = False
-
-        if self.asking_saving:
-            q = "Go back to menu without saving ? Your progression will be lost."
-            result = self.TextManager.display_ask_box(*trio, 0.35, 0.35,
-                "Go back to menu", q, "Yes", "Cancel")
-            if result is None:
-                pass
-            elif result:
-                self.asking_saving = False
-                self.go_to_menu()
-            else:
-                self.asking_saving = False
-            self.left_click = False
-
-        if self.asking_rmSave:
-            name = self.DataManager.Saves[self.save_to_delete]["name"]
-            q = "Are you sure you want to delete this save ? It will be lost."
-            result = self.TextManager.display_ask_box(*trio, 0.35, 0.35,
-                f"Delete save '{name}'", q, "Yes", "Cancel")
-            if result is None:
-                pass
-            elif result:
-                self.asking_rmSave = False
-                self.DataManager.delete_save(self.save_to_delete, self.current_time)
-                self.save_to_delete = None
-            else:
-                self.asking_rmSave = False
-            self.left_click = False
-
-        if self.asking_rmDayS:
-            q = "Are you sure you want to delete these saves ? They will be lost."
-            result = self.TextManager.display_ask_box(*trio, 0.35, 0.35,
-                "Delete today's saves", q, "Yes", "Cancel")
-            if result is None:
-                pass
-            elif result:
-                self.asking_rmDayS = False
-                self.DataManager.delete_today_saves(self.current_time)
-            else:
-                self.asking_rmDayS = False
-            self.left_click = False
-
-        if self.asking_rmAllS:
-            q = "Are you sure you want to delete these saves ? They will be lost."
-            result = self.TextManager.display_ask_box(*trio, 0.35, 0.35,
-                "Delete all saves", q, "Yes", "Cancel")
-            if result is None:
-                pass
-            elif result:
-                self.asking_rmAllS = False
-                self.DataManager.delete_all_saves(self.current_time)
-            else:
-                self.asking_rmAllS = False
-            self.left_click = False
-
-    # ! Function work fine but screen is still black when loading (look test2.py as working example)
     def display_loading_icon(self):                                             # Loading screen (bottom right)
         if self.DataManager.is_loading:
             self.DataManager.load_all_saves(self.current_time)                  # Update saved files
@@ -1636,7 +1627,7 @@ class RPSSimulator:                                                             
         if self.timer_turn.duration > 0:
             self.timer_turn.start(self.current_time)
 
-    def close_game(self, error=None):                                           # Exit program
+    def close_game(self, error: Exception = None):                              # Exit program
         self.DataManager.save_log(error)
         pygame.time.delay(200)
         self.running = False

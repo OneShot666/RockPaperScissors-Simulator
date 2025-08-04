@@ -10,3 +10,5 @@ Save menu : Show data and graphics about the launched simulations today and save
 Help notes : This menu, gives informations about gameplay and features.
 
 Warning menus : Prevents player if is about to do an irreversible action (like quiting when simulation isn't saved).
+
+Credits menu : Will display the credits. Can be closed by clicking or pressing any key. Speed can be adjusted with up and down arrows.

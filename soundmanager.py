@@ -1,10 +1,11 @@
 from random import choice
 from pathlib import Path
+from data import Database
 import pygame
 
 
 class SoundManager:
-    def __init__(self, db):
+    def __init__(self, db: Database):
         pygame.mixer.init()
         # Boolean data
         self.is_mute = False
@@ -19,12 +20,12 @@ class SoundManager:
         self.sound_volume = 0.1
         self.music_volume = 0.5
         # Sounds & musics data
-        self.sound_name = None
-        self.music_name = None
-        self.current_sound: pygame.mixer.Sound = None
-        self.current_music: pygame.mixer.Sound = None
-        self.Sounds = {}                                                        # All sounds
-        self.Musics = {}                                                        # All musics
+        self.sound_name: str = None
+        self.music_name: str = None
+        self.current_sound: pygame.Sound = None
+        self.current_music: pygame.Sound = None
+        self.Sounds: dict[str, pygame.Sound] = {}                               # All sounds
+        self.Musics: dict[str, pygame.Sound] = {}                               # All musics
         # Based functions
         self.create_sounds()
         self.create_musics()
@@ -41,24 +42,24 @@ class SoundManager:
         self.music_volume = max(min(self.music_volume, 1), 0)
         self.sound_volume = max(min(self.sound_volume, 1), 0)
 
-    def get_type_of_sounds(self, name):                                         # Return a list of specific sounds
+    def get_type_of_sounds(self, name: str):                                    # Return a list of specific sounds
         return [k for k, _ in self.Sounds.items() if name in k]
 
-    def play_entity_sound(self, name):                                          # Use to make entity play random sounds
+    def play_entity_sound(self, name: str):                                     # Use to make entity play random sounds
         Sounds = self.get_type_of_sounds(name)
         if len(Sounds) > 0:
             sound = choice(Sounds)
             self.play_sound(sound)
 
-    # [Unused] Get if given sound is playing
-    def is_sound_playing(self, name):
+    def is_sound_playing(self, name: str):
+        """[Unused] Get if given sound is playing"""
         if name in self.Sounds.keys():
             if self.Sounds[name]:
                 return self.Sounds[name].get_num_channels()
             return False
         return False
 
-    def set_volume(self, new_value):                                            # Change volume value
+    def set_volume(self, new_value: float):                                     # Change volume value
         self.sound_volume = new_value
         self.check_volumes()
         if self.current_sound:
@@ -72,7 +73,7 @@ class SoundManager:
         self.sound_volume -= 0.05
         self.set_volume(self.sound_volume)
 
-    def set_music_volume(self, new_value):                                      # Change music volume value
+    def set_music_volume(self, new_value: float):                               # Change music volume value
         self.music_volume = new_value
         self.check_volumes()
         if self.current_music:
@@ -86,21 +87,21 @@ class SoundManager:
         self.music_volume -= 0.05
         self.set_music_volume(self.music_volume)
 
-    def play_sound(self, name, loops=0):                                        # Play given sound
+    def play_sound(self, name: str, loops=0):                                   # Play given sound
         if name in self.Sounds.keys():
             self.sound_name = name
             self.current_sound = self.Sounds[name]
             self.current_sound.play(loops=loops)
             self.current_sound.set_volume(self.sound_volume)
 
-    # [Unused] Stop given sound
-    def stop_sound(self, name=None):
+    def stop_sound(self, name: str = None):
+        """[Unused] Stop given sound"""
         if name in self.Sounds.keys():
             self.Sounds[name].stop()
         elif self.current_sound:
             self.current_sound.stop()
 
-    def play_music(self, name=None, loops=0):                                   # Play given music
+    def play_music(self, name: str = None, loops=0):                            # Play given music
         loops = -1 if self.is_loop else loops
         if name is None and len(self.Musics.values()) > 0:
             self.stop_music()

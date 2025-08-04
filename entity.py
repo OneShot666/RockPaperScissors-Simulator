@@ -1,4 +1,5 @@
 from math import inf, sqrt
+from typing import Optional
 from random import randint, choice
 from timermanager import TimerManager
 import pygame
@@ -9,18 +10,18 @@ class Entity:                                                                   
             range_value=100, size=30, smart=False, db=None):
         # Attribute data
         self.is_smart = smart
-        self.id = id_value                                                      # Use to distinguish entities
-        self.name = db.ENTITYNAMES[1] if db and (name is None or name == "") else name.lower()
+        self.id: int = id_value                                                 # Use to distinguish entities
+        self.name: str = db.ENTITYNAMES[1] if db and (name is None or name == "") else name.lower()
         self.coords = [0, 0] if coords is None else coords
         # Display data
         self.speed = speed                                                      # Speed on screen
         self.range = range_value                                                # Perception of other entities
         self.size = size                                                        # Image's size
-        self.EntityImages = db.ENTITYIMAGES
-        self.color = db.ENTITYCOLORS[self.name]
+        self.EntityImages: dict[str, pygame.Surface] = db.ENTITYIMAGES
+        self.color: tuple[int] = db.ENTITYCOLORS[self.name]
         self.image = self.get_image(image)
         # Behaviour data
-        self.Predatory = db.FOODCHAIN
+        self.Predatory: dict[str, list[str]] = db.FOODCHAIN
         self.Predators = self.get_predators()                                   # List of name
         self.predator: Entity = None
         self.Targets = self.get_targets()                                       # //
@@ -33,19 +34,19 @@ class Entity:                                                                   
         return (f"{self.name.capitalize()} [{int(self.coords[0])}, {int(self.coords[0])}] "
                 f"(target: {self.Targets}, predator: {self.Predators}), {self.behaviour}")
 
-    def get_image(self, image=None):                                            # Set image based on name
+    def get_image(self, image: Optional[pygame.Surface] = None) -> pygame.Surface:  # Set image based on name
         if image is None:
             image = self.EntityImages[self.name]
         return pygame.transform.scale(image, (self.size, self.size))
 
-    def get_targets(self):                                                      # Get name of targets based on own name
+    def get_targets(self) -> list[str]:                                         # Get name of targets based on own name
         return self.Predatory.get(self.name, [])
 
-    def get_predators(self):                                                    # Get name of predators based on own name
+    def get_predators(self) -> list[str]:                                       # Get name of predators based on own name
         return [e for e, targets in self.Predatory.items() if self.name in targets]
 
     # ? Change code and use rect.center for get_distance
-    def get_distance(self, point1, point2, screen_size=None):                   # Calculate distance between two points
+    def get_distance(self, point1, point2, screen_size=None) -> float:          # Calculate distance between two points
         screen_size = None if not self.is_smart else screen_size
         dx = min(abs(point2[0] - point1[0]), screen_size[0] - abs(point2[0] - point1[0])) \
             if screen_size else point2[0] - point1[0]
@@ -55,14 +56,14 @@ class Entity:                                                                   
 
     # ? Same as get_distance (if so, make get_distance dumb, maybe ?)
     @staticmethod
-    def get_toroidal_distance(point1, point2, screen_size):                     # Like get_distance in toroidal map
+    def get_toroidal_distance(point1, point2, screen_size) -> float:            # Like get_distance in toroidal map
         dx = abs(point1[0] - point2[0])
         dy = abs(point1[1] - point2[1])
         return sqrt(dx ** 2 + dy ** 2) if screen_size is None else (
             sqrt(min(dx, screen_size[0] - dx) ** 2 + min(dy, screen_size[1] - dy) ** 2))
 
     # Only use for toroidal map to flee predator
-    def get_farthest_point(self, screen_size):                                  # Calculate the farthest point on screen (for self)
+    def get_farthest_point(self, screen_size: list[int]):                  # Calculate the farthest point on screen (for self)
         if self.predator.coords[0] is not None:
             coords = self.predator.coords
             screen_size = [1, 1] if screen_size is None else screen_size
@@ -70,7 +71,7 @@ class Entity:                                                                   
             return (coords[0] + width / 2) % width, (coords[1] + height / 2) % height
         return None
 
-    def is_mouse_over(self, mouse_pos):                                         # Check if mouse is hover self
+    def is_mouse_over(self, mouse_pos: tuple[int, int]) -> bool:                # Check if mouse is hover self
         image_rect = self.image.get_rect(topleft=self.coords)
         return image_rect.collidepoint(mouse_pos)
 
@@ -82,13 +83,13 @@ class Entity:                                                                   
         self.is_smart = False
         self.range *= 100 / 105
 
-    def does_collide_with_entity(self, entity):                                 # Check if self collide with an entity
+    def does_collide_with_entity(self, entity: "Entity") -> bool:               # Check if self collide with an entity
         return self.get_distance(self.coords, entity.coords) <= self.size
 
-    def set_target(self, new_target):                                           # Change value of target
+    def set_target(self, new_target: "Entity"):                                 # Change value of target
         self.target = new_target
 
-    def set_predator(self, new_predator):                                       # Change value of predator
+    def set_predator(self, new_predator: "Entity"):                             # Change value of predator
         self.predator = new_predator
 
     def look_for_closest_target(self, Entities, screen_size=None, is_range=False):  # Search for the closest target
@@ -122,19 +123,21 @@ class Entity:                                                                   
             self.set_predator(predator)
 
     # Move to closest target if there is any
-    def chase_target(self, screen_size, is_map_borders=False, is_infinity_map=False):
+    def chase_target(self, screen_size: list[int], is_map_borders=False, is_infinity_map=False):
         self.move_to_coords(self.target.coords, screen_size, is_map_borders, is_infinity_map)
         self.behaviour = f"Chasing target ({self.target.id})"
 
     # Move to opposite direction of closest predator
-    def flee_predator(self, screen_size=None, is_map_borders=False, is_infinity_map=False):
+    def flee_predator(self, screen_size: Optional[list[int]],
+            is_map_borders=False, is_infinity_map=False):
         self.move_to_reverse_coords(self.predator.coords, screen_size, is_map_borders, is_infinity_map)
         self.behaviour = f"Fleeing predator ({self.predator.id})"
 
     # Look for shorter way to target (using map borders and inf map to its advantage)
     # [later] Will separate in two groups to take targets in sandwich -> make EntityManager class ?
     # [later] Group will form a line to stuck target in a corner when map has borders
-    def move_smart(self, Entities, screen_size=None, is_map_borders=False, is_infinity_map=False):
+    def move_smart(self, Entities, screen_size: Optional[list[int]],
+            is_map_borders=False, is_infinity_map=False):
         testing = False
         if testing:
             print("Moving start :", end=" ")                                    # !!!
@@ -219,7 +222,7 @@ class Entity:                                                                   
         self.coords[1] += randint(-1, 1) * self.speed * boost_mult
         self.behaviour = "Moving randomly"
 
-    def change_type(self, name=None):                                           # Change type of entity (when beaten)
+    def change_type(self, name: str = None):                                    # Change type of entity (when beaten)
         self.name = name if name else choice(self.get_predators())              # Before predators are updated
         self.image = self.get_image()
         self.Predators = self.get_predators()

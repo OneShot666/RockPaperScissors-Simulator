@@ -33,10 +33,10 @@ class Simulation:
     is_loaded =     None
     path_save =     None
     path_sim =      None
-    EntityQuantity: dict = field(default_factory=dict)
-    Speeds: list =  field(default_factory=list)
-    Ranges: list =  field(default_factory=list)
-    Sizes: list =   field(default_factory=list)
+    EntityQuantity: dict =  field(default_factory=dict)
+    Speeds: list[int] =     field(default_factory=list)
+    Ranges: list[int] =     field(default_factory=list)
+    Sizes: list[int] =      field(default_factory=list)
     Screenshots =   None                                                        # Attributes without type aren't saved
     Graphics =      None
 
@@ -73,7 +73,7 @@ class Simulation:
         self.GraphicTypes =     db.GRAPHICS_TYPES
         self.OptionNames =      list(db.OPTIONCOLORS.keys())                    # Options for graphic n°2
         self.current_options = deepcopy(self.OptionNames)
-        self.Graphics = []
+        self.Graphics: list[Graphic] = []
         # Basic function
         self.create_graphics()
 
@@ -85,7 +85,7 @@ class Simulation:
         self.Graphics.append(Graphic(self.GraphicNames[4], self.GraphicTypes[3], True, self.db))
         self.update_graphics()
 
-    def set_path_sim(self, path_sim):
+    def set_path_sim(self, path_sim: Path):
         self.path_save = path_sim.parent
         self.path_sim = path_sim
 
@@ -113,7 +113,7 @@ class Simulation:
             return sum(1 for f in Path(self.path_save).iterdir() if f.is_dir())
         return 0
 
-    def get_image_from_graphic(self, graphic):
+    def get_image_from_graphic(self, graphic: Graphic) -> pygame.Surface:
         graphic.update_image(self.EntityQuantity, self.Speeds, self.Ranges, self.Sizes)
         return graphic.image
 
@@ -124,20 +124,20 @@ class Simulation:
     def get_next_save_name(self):
         return f"data {self.id}" + self.save_format
 
-    def get_next_graphic_name(self, nb):
+    def get_next_graphic_name(self, nb: int):
         return f"graphic {nb}" + self.graphic_format
 
-    def add_entity(self, name, value):                                          # Add an entity name and a value
+    def add_entity(self, name: str, value: int):                                # Add an entity name and a value
         if name in self.EntityQuantity:
             self.EntityQuantity[name].append(value)
 
-    def add_range(self, range_value):                                           # Add average range of entities
+    def add_range(self, range_value: int):                                      # Add average range of entities
         self.Ranges.append(range_value)
 
-    def add_speed(self, speed):                                                 # Add average speed of entities
+    def add_speed(self, speed: int):                                            # Add average speed of entities
         self.Speeds.append(speed)
 
-    def add_size(self, size):                                                   # Add average size of entities
+    def add_size(self, size: int):                                              # Add average size of entities
         self.Sizes.append(size)
 
     def update_id(self, bonus=1, was_saved=True):                               # Id either depends on nb saves or names
@@ -152,7 +152,7 @@ class Simulation:
             for graphic in self.Graphics:
                 graphic.update_image(self.EntityQuantity, self.Speeds, self.Ranges, self.Sizes)
 
-    def take_screenshot(self, screen):                                          # Take full screenshot but don't save it
+    def take_screenshot(self, screen: pygame.Surface):                          # Take full screenshot but don't save it
         self.Screenshots.append(screen.copy())
         self.nb_turn = len(self.Screenshots)
 
@@ -169,7 +169,7 @@ class Simulation:
                 append_images=Images[1:], duration=250, loop=0)
 
     @staticmethod
-    def load_screenshots(path):
+    def load_screenshots(path: Path | str):
         return [pygame.image.frombuffer(frame.convert("RGBA").tobytes(), frame.size, "RGBA").copy()
             for frame in ImageSequence.Iterator(Image.open(path))]              # copy() : Pillow use same memory
 
@@ -196,7 +196,7 @@ class Simulation:
         self.save_graphics()
         self.is_saved = True
 
-    def load_save(self, save_dir_name):
+    def load_save(self, save_dir_name: Path):
         yield                                                                   # Take a break
         self.set_path_sim(save_dir_name)                                        # Update path of save
         yield                                                                   # Take a break
@@ -225,6 +225,6 @@ class Simulation:
         self.is_loaded = False
 
     @staticmethod
-    def force_delete(function, path, _):
+    def force_delete(function, path: Path, _):
         Path(path).chmod(0o777)                                                 # Change permission
         function(path)

@@ -21,17 +21,17 @@ class Database:                                                                 
         self.LOG_FORMAT =       ".md"                                           # Format for log files
         # File data
         self.FILES = ("data", "data/texts", "images", "images/entity",
-            "images/graphics", "logs", "musics", "saves", "sounds")    # All files to create at first launch
-        self.PATH =             Path.cwd()                                      # Current programm path
-        self.PATH_DATA =        Path(self.PATH) / "data"                        # Datas path
-        self.PATH_TEXT =        Path(self.PATH_DATA) / "texts"                  # Texts path
-        self.PATH_IMAGE =       Path(self.PATH) / "images"                      # Images path
-        self.PATH_ICON_ENTITY = Path(self.PATH_IMAGE) / "entity"                # Icons of entities path
-        self.PATH_ICON_GRAPHIC = Path(self.PATH_IMAGE) / "graphics"             # Icons of graphics path
-        self.PATH_LOG =         Path(self.PATH) / "logs"                        # Logs path (for saves)
-        self.PATH_MUSIC =       Path(self.PATH) / "musics"                      # Musics path
-        self.PATH_SAVE =        Path(self.PATH) / "saves"                       # Saves path (for saves)
-        self.PATH_SOUND =       Path(self.PATH) / "sounds"                      # Sounds path
+            "images/graphics", "logs", "musics", "saves", "sounds")             # All files to create at first launch
+        self.PATH: Path =               Path.cwd()                              # Current programm path
+        self.PATH_DATA: Path =          Path(self.PATH) / "data"                # Datas path
+        self.PATH_TEXT: Path =          Path(self.PATH_DATA) / "texts"          # Texts path
+        self.PATH_IMAGE: Path =         Path(self.PATH) / "images"              # Images path
+        self.PATH_ICON_ENTITY: Path =   Path(self.PATH_IMAGE) / "entity"        # Icons of entities path
+        self.PATH_ICON_GRAPHIC: Path =  Path(self.PATH_IMAGE) / "graphics"      # Icons of graphics path
+        self.PATH_LOG: Path =           Path(self.PATH) / "logs"                # Logs path (for saves)
+        self.PATH_MUSIC: Path =         Path(self.PATH) / "musics"              # Musics path
+        self.PATH_SAVE: Path =          Path(self.PATH) / "saves"               # Saves path (for saves)
+        self.PATH_SOUND: Path =         Path(self.PATH) / "sounds"              # Sounds path
         # Color data
         self.COLORNAMES =   ("red", "orange", "wheat", "gold", "yellow", "lime",
             "green", "cyan", "deepskyblue", "blue", "purple", "deeppink",
@@ -63,20 +63,19 @@ class Database:                                                                 
         # Graphics data
         self.GRAPHICS_NAMES = ("Number of entity every second", "Average options evolution",
             "Pinnacle for each entity", "Maximum for each option", "Dominance of entities")
-        self.GRAPHICS_TYPES = [_ for _ in Path(self.PATH_ICON_GRAPHIC).iterdir()
-            if _.suffix == self.IMAGE_FORMAT]
+        self.GRAPHICS_TYPES: list[str] = [_ for _ in Path(self.PATH_ICON_GRAPHIC).iterdir()
+            if _.suffix == self.IMAGE_FORMAT]                                   # Types of graphics (names of files)
         self.GRAPHICS_ENTITY_COLORS = {name: self.FLOAT_COLORS[color]
             for name, color in zip(self.ENTITYNAMES, Colors)}
         self.GRAPHICS_OPTION_COLORS = {name: self.FLOAT_COLORS[color]
             for name, color in OptionColors.items()}                            # Colors associates with graphics
         # Help screen data
-        self.HELPTABS =   []
-        self.HELPTEXTS =  []
+        self.HELPTABS: list[list[str]] =   []
+        self.HELPTEXTS: list[list[str]] =  []
         self.HELPIMAGES = (None, "game rules.png", "sheldon rules.png", None, None)
         # Credits data
-        self.CREDITS = []
+        self.CREDITS: list[pygame.Surface] = []
 
-    # [later] Write Sheldon's rules text when they're added
     def load_help_texts(self):                                                  # Launch later to avoid FileNotFoundError
         Files = [_ for _ in Path(self.PATH_TEXT).iterdir() if _.suffix == self.HELP_FORMAT]
         for file in Files:

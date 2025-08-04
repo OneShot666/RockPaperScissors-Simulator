@@ -3,6 +3,8 @@ from humanize import precisedelta
 from datetime import date, datetime
 from timermanager import TimerManager
 from simulation import Simulation
+from graphic import Graphic
+from data import Database
 import matplotlib.pyplot as plt
 import matplotlib
 import statistics
@@ -24,17 +26,17 @@ class DataManager:
         self.is_sim_saved =     False                                           # If the last simulation was saved
         self.is_on_saves =      False                                           # If on saves or today's sims
         # Path data
-        self.db = db
+        self.db: Database = db
         self.today = date.today().strftime(db.DATE_FORMAT)
-        self.path_log =             db.PATH_LOG
-        self.path_save =            db.PATH_SAVE
-        self.path_image =           db.PATH_IMAGE
-        self.path_icon_graphic =    db.PATH_ICON_GRAPHIC
+        self.path_log: Path =           db.PATH_LOG
+        self.path_save: Path =          db.PATH_SAVE
+        self.path_image: Path =         db.PATH_IMAGE
+        self.path_icon_graphic: Path =  db.PATH_ICON_GRAPHIC
         self.anim_timer = TimerManager(0.5)                                     # A timer for gif animation
         # Graphics data
-        self.Graphics = []
-        self.current_graphic = None                                             # Index of graphic
-        self.current_graphic_image = None
+        self.Graphics: list[Graphic] = []
+        self.current_graphic: int = None                                        # Index of graphic
+        self.current_graphic_image: pygame.Surface = None
         # Menu data
         self.Tabs = ["Simulations", "Graphics", "Saves"]                        # Today, Before
         self.current_tab =  2                                                   # Index of tab to display
@@ -42,24 +44,24 @@ class DataManager:
         self.current_save = 0                                                   # Index of save to display
         self.current_turn = 0                                                   # Index of turn to display
         # Simulation data
-        self.sim = None                                                         # Last simulation created
+        self.sim: Simulation = None                                             # Last simulation created
         self.nb_sim = 0                                                         # Number of launched simulations
-        self.Simulations = []                                                   # Simulations launch today
+        self.Simulations: list[Simulation] = []                                 # Simulations launch today
         self.nb_saved_logs = 0
-        self.log_format = db.LOG_FORMAT
+        self.log_format: str = db.LOG_FORMAT
         # Save data
-        self.save = None                                                        # Last save loaded
+        self.save: Simulation = None                                            # Last save loaded
         self.nb_save = 0                                                        # Number of loaded saves
-        self.Saves = []                                                         # Saved data
+        self.Saves: list[Simulation] = []                                       # Saved data
         self.loader = None
         self.load_timer = TimerManager(0.01)                                    # A timer for loading saves
-        self.save_format = db.SAVE_FORMAT
-        self.image_size = db.FONTS[2].get_height()
-        self.bin_image = pygame.image.load(Path(self.path_image / "bin.png")).convert_alpha()   # Delete icon for saves
-        self.bin_image = pygame.transform.scale(self.bin_image, (self.image_size, self.image_size))
-        self.EntityNames = db.ENTITYNAMES
+        self.save_format: str = db.SAVE_FORMAT
+        self.image_size: int = db.FONTS[2].get_height()
+        bin_image = pygame.image.load(Path(self.path_image / "bin.png")).convert_alpha()    # Delete icon for saves
+        self.bin_image = pygame.transform.scale(bin_image, (self.image_size, self.image_size))
+        self.EntityNames: list[str] = db.ENTITYNAMES
 
-    def get_nb_file(self, path, format_type):
+    def get_nb_file(self, path: Path, format_type: str):
         full_path = Path(path) / self.today
         if Path(full_path).exists():
             return len([_ for _ in Path(full_path).iterdir() if _.suffix == format_type])
@@ -79,7 +81,7 @@ class DataManager:
         return self.get_current_sim().nb_turn if len(self.Simulations) > 0 else (
             self.get_current_save().nb_turn) if self.is_on_saves and len(self.Saves) > 0 else 0
 
-    def set_option(self, value):                                                # Change option of graphics with options
+    def set_option(self, value: str):                                           # Change option of graphics with options
         graphic = self.Graphics[self.current_graphic]
         if value in graphic.Options:
             graphic.Options.remove(value)
@@ -87,7 +89,7 @@ class DataManager:
             graphic.Options.append(value)
         self.update_all_graphics()
 
-    def set_save(self, index):                                                  # Change the current save loaded
+    def set_save(self, index: int):                                             # Change the current save loaded
         if len(self.Saves) > index:
             if self.save == self.Saves[index]:                                  # Can unselect current save
                 self.current_save = 0
@@ -100,13 +102,14 @@ class DataManager:
                 self.is_on_saves = True
             self.update_all_graphics()
 
-    def is_current_sim_saved(self):                                             # [later] Change function
+    def is_current_sim_saved(self):
         if len(self.Simulations) > 0:
             return self.get_current_sim().is_saved
         return False
 
     @staticmethod
-    def resize_image(screensize, image, width=None, height=None):               # Keep image proportional size
+    def resize_image(screensize: tuple[int, int], image: pygame.Surface, width: float = None, height: float = None):
+        """Keep image proportional size"""
         new_size = [image.get_height(), image.get_width()]
         if width and height:
             new_size = (screensize[0] * width, screensize[1] * height)
@@ -156,7 +159,7 @@ class DataManager:
             if self.current_turn > self.get_nb_turns() - 1:
                 self.current_turn = 0
 
-    def add_simulation(self, duration, smart=False, is_range=False,
+    def add_simulation(self, duration: float | int, smart=False, is_range=False,
             borders=False, toroidal=False, sheldon=False):                      # Save last sim
         self.sim = Simulation(self.nb_sim + 1, duration, 0, smart, is_range,
             borders, toroidal, sheldon, self.db)
@@ -168,7 +171,7 @@ class DataManager:
             self.current_sim += 1
         self.nb_sim = len(self.Simulations)
 
-    def update_simulation(self, sim_id, duration, smart=False, is_range=False,
+    def update_simulation(self, sim_id: int, duration: float | int, smart=False, is_range=False,
             borders=False, toroidal=False, sheldon=False):
         for i, save in enumerate(self.Simulations):
             if save.id == sim_id:
@@ -181,23 +184,23 @@ class DataManager:
                 return
         self.add_simulation(duration, smart, is_range, borders, toroidal, sheldon)  # If sim wasn't added
 
-    def add_entity_value(self, name, value):
+    def add_entity_value(self, name: str, value: int):
         if len(self.Simulations) > 0:
             self.get_current_sim().add_entity(name, value)
 
-    def add_speed(self, speed):
+    def add_speed(self, speed: float | int):
         if len(self.Simulations) > 0:
             self.get_current_sim().add_speed(speed)
 
-    def add_range(self, range_value):
+    def add_range(self, range_value: float | int):
         if len(self.Simulations) > 0:
             self.get_current_sim().add_range(range_value)
 
-    def add_size(self, size):
+    def add_size(self, size: float | int):
         if len(self.Simulations) > 0:
             self.get_current_sim().add_size(size)
 
-    def take_screenshot(self, screen):
+    def take_screenshot(self, screen: pygame.Surface):
         if len(self.Simulations) > 0:
             self.get_current_sim().take_screenshot(screen)
 
@@ -209,7 +212,7 @@ class DataManager:
             self.get_current_sim().update_graphics()
             self.Graphics = self.get_current_sim().Graphics
 
-    def save_log(self, error=None):                                             # Automatically save when quiting program
+    def save_log(self, error: Exception = None):                                # Automatically save when quiting program
         dir_name = Path(self.path_log) / self.today
         Path(dir_name).mkdir(exist_ok=True)
 
@@ -262,13 +265,13 @@ class DataManager:
 
             file.close()
 
-    def save_current_sim(self, current_time):
+    def save_current_sim(self, current_time: float):
         if len(self.Simulations) > 0:
             self.get_current_sim().create_save()
             if len(self.Saves) > 0:                                             # If saves were loaded before
                 self.begin_loading(current_time)
 
-    def save_all(self, current_time):                                           # Save all collected data
+    def save_all(self, current_time: float):                                           # Save all collected data
         for sim in self.Simulations:
             sim.create_save()
         if len(self.Saves) > 0:                                                 # If saves were loaded before
@@ -288,12 +291,12 @@ class DataManager:
             self.current_graphic_image = self.resize_image(screensize,
                 self.current_graphic_image, height=size)
 
-    def check_display_next_turn(self, current_time):
+    def check_display_next_turn(self, current_time: float):
         if self.is_auto_play:                                                   # Show each turn for 0.5 second
             if self.anim_timer.check_loop_end(current_time) > 0:                # After the loop end
                 self.next_turn()
 
-    def begin_loading(self, current_time):                                      # Prepare program to load saves
+    def begin_loading(self, current_time: float):                               # Prepare program to load saves
         self.is_loading = True
         self.Saves.clear()
         self.loader = self.progressive_load()                                   # Asynchrone function to load saves
@@ -309,7 +312,7 @@ class DataManager:
                         result = self.load_save(filename)
                         yield from result
 
-    def load_save(self, name):                                                  # Load a save based on its name
+    def load_save(self, name: Path):                                            # Load a save based on its name
         yield                                                                   # Take a break in case it's too long
         with open(name, "r", encoding="utf-8") as f:
             yield                                                               # Take another break
@@ -317,12 +320,12 @@ class DataManager:
             yield                                                               # And another break
         result["simulation"] = Simulation.from_dict(result["simulation"])       # Turn data into instance of class
         yield                                                                   # And another one
-        yield from result["simulation"].load_save(name.parent)
+        yield from result["simulation"].load_save(name.parent)                  # Load/update most data
         yield                                                                   # And another one
         self.Saves.append(result)
         yield                                                                   # Another one by the dust !
 
-    def load_all_saves(self, current_time):                                     # Load all saves
+    def load_all_saves(self, current_time: float):                              # Load all saves
         if self.load_timer.check_loop_end(current_time):                        # Load every 10 ms
             try:
                 next(self.loader)                                               # Load saves one by one
@@ -333,11 +336,11 @@ class DataManager:
             self.nb_save = len(self.Saves)                                      # Only update when all saves are loaded
 
     @staticmethod
-    def force_delete(function, path, _):
+    def force_delete(function, path: Path, _):
         Path(path).chmod(0o777)                                                 # Change permission
         function(path)
 
-    def delete_today_saves(self, current_time):                                 # Delete saves saved today
+    def delete_today_saves(self, current_time: float):                          # Delete saves saved today
         item_path = Path(self.path_save) / self.today
         if Path(item_path).exists() and Path(item_path).is_dir():               # Delete today save directory
             shutil.rmtree(item_path, onerror=self.force_delete)
@@ -347,7 +350,7 @@ class DataManager:
         self.was_today_saves = False
         self.begin_loading(current_time)
 
-    def delete_save(self, index, current_time):                                 # Delete saves saved today
+    def delete_save(self, index: int, current_time: float):                     # Delete saves saved today
         save = self.Saves[index]["simulation"]
         if save.is_saved:                                                       # If save exists and was saved
             self.current_save = 0
@@ -356,7 +359,7 @@ class DataManager:
             self.Saves.pop(index)
             self.nb_save = len(self.Saves)
 
-    def delete_all_saves(self, current_time):                                   # Delete all saves (but not logs)
+    def delete_all_saves(self, current_time: float):                            # Delete all saves (but not logs)
         if Path(self.path_save).exists() and Path(self.path_save).is_dir():
             for item in Path(self.path_save).iterdir():
                 item_path = Path(self.path_save) / item

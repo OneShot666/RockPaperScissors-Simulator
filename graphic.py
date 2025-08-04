@@ -14,24 +14,24 @@ class Graphic:
         matplotlib.use("Agg")                                                   # Use non-interactive back-end
         # Attributes
         self.is_entity = entity_type                                            # If graphic display entity data or not
-        self.name = name
+        self.name: str = name
         # Path data
-        self.path_graphic = db.PATH_ICON_GRAPHIC
+        self.path_graphic: Path = db.PATH_ICON_GRAPHIC
         # Graphics data
-        self.type = type_value
-        self.GraphicTypes = db.GRAPHICS_TYPES
+        self.type: str = type_value
+        self.GraphicTypes: list[str] = db.GRAPHICS_TYPES
         self.linestyle = "-"                                                    # Continuous line
         # Icon data
         self.icon_size = 70
         self.icon = self.get_icon()
-        self.image = None                                                       # Pygame image to display
-        self.figure = None                                                      # Figure graphic to save
-        self.image_format = db.IMAGE_FORMAT
+        self.image: pygame.Surface = None                                       # Pygame image to display
+        self.figure: Figure = None                                              # Figure graphic to save
+        self.image_format: str = db.IMAGE_FORMAT
         # Entities data
-        self.EntityNames =  db.ENTITYNAMES
+        self.EntityNames: list[str] =  db.ENTITYNAMES
         self.EntityColors = db.GRAPHICS_ENTITY_COLORS
         # Options data
-        self.OptionNames = list(db.OPTIONCOLORS.keys())
+        self.OptionNames: list[str] = list(db.OPTIONCOLORS.keys())
         self.OptionColors = db.GRAPHICS_OPTION_COLORS
         self.Options = self.EntityNames if self.is_entity else self.OptionNames
 
@@ -43,7 +43,7 @@ class Graphic:
         return None
 
     @staticmethod
-    def get_figure_to_pygame_image(figure):                                     # Convert matplotlib image to pygame
+    def get_figure_to_pygame_image(figure: Figure):                             # Convert matplotlib image to pygame
         buf = BytesIO()
         figure.savefig(buf, format="png")                                       # Save in a buffer
         buf.seek(0)
@@ -52,12 +52,12 @@ class Graphic:
         return surface
 
     @staticmethod
-    def get_percentage_data(Values):
+    def get_percentage_data(Values: list[int | float]):
         if max(Values) == min(Values):
             return [50.0] * len(Values)
         return [(x - min(Values)) / (max(Values) - min(Values)) * 100 for x in Values]
 
-    def get_image(self, EntityQuantity, Options=None):   # Display associate graphic
+    def get_image(self, EntityQuantity, Options: dict[str, list[int]] = None):  # Display associate graphic
         EntityQuantity = {name: Values for name, Values in EntityQuantity.items() if name in self.Options} \
             if self.is_entity else EntityQuantity if EntityQuantity else {}
         Options = {name: Values for name, Values in Options.items() if name in self.Options} \
@@ -86,15 +86,15 @@ class Graphic:
             return image, figure
         return None, None
 
-    def update_image(self, EntityQuantity, Speeds, Ranges, Sizes):
+    def update_image(self, EntityQuantity, Speeds: list[int], Ranges: list[int], Sizes: list[int]):
         Options = {"speed": Speeds, "range": Ranges, "size": Sizes}
         self.image, self.figure = self.get_image(EntityQuantity, Options)
 
-    def save_image(self, name):
+    def save_image(self, name: Path):
         name = name.with_suffix(self.image_format) if name.suffix != self.image_format else name
         self.figure.savefig(name)
 
-    def graphic_nb_entity(self, EntityQuantity):                                # line plot graphic
+    def graphic_nb_entity(self, EntityQuantity: dict[str, list[int]]):          # line plot graphic
         fig, ax = plt.subplots()                                                # Types : figure.Figure, axes.Axes
 
         if len(EntityQuantity.keys()) > 0:
@@ -107,12 +107,12 @@ class Graphic:
         ax.set_xlabel("Time")                                                  # Name axes
         ax.set_ylabel("Quantity of entities")
         ax.set_title(self.name)                                                # Largest population an entity has reached
-        ax.legend()
+        # ax.legend()
         ax.grid(True)                                                          # Display grid
 
         return fig
 
-    def graphic_average_option(self, Options):                                  # Show average option evolution (every second)
+    def graphic_average_option(self, Options: dict[str, list[int]]):            # Show average option evolution (every second)
         fig, ax = plt.subplots()
 
         for name, Values in Options.items():
@@ -130,7 +130,7 @@ class Graphic:
 
         return fig
 
-    def graphic_max_quantity(self, EntityQuantity):                             # bar chart graphic
+    def graphic_max_quantity(self, EntityQuantity: dict[str, list[int]]):       # bar chart graphic
         fig, ax = plt.subplots()
 
         if all(len(value) > 0 for value in EntityQuantity.values()):
@@ -148,7 +148,7 @@ class Graphic:
 
         return fig
 
-    def graphic_max_options(self, Options):                                     # Show max value of all options during sim
+    def graphic_max_options(self, Options: dict[str, list[int]]):               # Show max value of all options during sim
         fig, ax = plt.subplots()
 
         if all(len(value) > 0 for value in Options.values()):
@@ -163,7 +163,7 @@ class Graphic:
 
         return fig
 
-    def graphic_dominant_entity(self, EntityQuantity):                          # pie chart graphic
+    def graphic_dominant_entity(self, EntityQuantity: dict[str, list[int]]):    # pie chart graphic
         fig, ax = plt.subplots()
 
         if all(len(value) > 0 for value in EntityQuantity.values()):
@@ -176,7 +176,7 @@ class Graphic:
             ax.pie([100], labels=["--empty--"], colors=["lightgrey"])           # to display something
 
         ax.set_title(self.name)                                                 # Largest population an entity has reached
-        ax.legend()
+        # ax.legend()
 
         return fig
 
