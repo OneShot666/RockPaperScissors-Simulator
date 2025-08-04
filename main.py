@@ -83,7 +83,7 @@ class RPSSimulator:                                                             
         self.full_size =    db.FULL_SIZE
         self.screen_size =  db.SCREEN_SIZE
         pygame.display.set_caption(self.name)                                   # Give window a title
-        pygame.display.set_icon(db.ENTITYIMAGES[db.ENTITYNAMES[2]])             # Give window an icon
+        pygame.display.set_icon(db.ENTITYIMAGES[db.BASENAMES[2]])               # Give window an icon
         # Gamma data
         self.gamma = 80
         self.overlay: pygame.Surface = None
