@@ -1633,7 +1633,3 @@ class RPSSimulator:                                                             
         self.running = False
         pygame.quit()
         quit()
-
-
-if __name__ == "__main__":
-    game = RPSSimulator()

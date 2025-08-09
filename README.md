@@ -21,7 +21,10 @@ Or you can use this program as a real agent-based modeling and personalize your 
 ***
 ## Rules : 
 - Entities can beat other entities and be beaten respecting the following schema :
-  Rock < Paper < Scissors < Rock
+  Rock < Paper < Scissors < Rock\
+- Sheldon rules : \
+  Rock < Paper < Scissors < Spock < Lizard < Rock\
+  Rock < Spock < Paper < Lizard < Scissors < Rock
 - Entities will automatically go to the closest target.
 - If the entity is smart and no target remains, it will flee its nearest predator. Else, it will randomly move.
 
@@ -48,9 +51,11 @@ Or you can use this program as a real agent-based modeling and personalize your 
 ***
 ## Installation guide
 
+On GitHub : 
 - Click on the green "<> Code" button
 - On Local/SSH/, click on "Download as zip"
-- Choose a location for the program in your machine
+- Choose a location for the program in your machine\
+On your computer : 
 - Unzip the files
 - With your python interpreter, launch the file "main.py"
 - The simulations can start !
@@ -92,8 +97,14 @@ Pause :
 
 Settings menu : click on the tabs to open them
 - "Main" : Open the main tab.
-    - Fullscreen : [In production] When on, change the program to fullscreen size. When off, change it to half the size.
-    - Gamma : [In production] Change the gamma (brightness) of the screen.
+    - Fullscreen : [In production] When on, change the program to fullscreen size. \
+      When off, change it to half the size.
+    - Gamma : Change the gamma (brightness) of the screen.
+    - "Developer settings" button : Will change some parameters to adapt to my tastes. \
+      Feel free to try them.
+    - "Update simulation" button : Will reload the current simulation data. \ 
+      Click in case of a problem.
+    - "Credits" button : Play credits. Speed can be changed with up/down arrows.
 
 - "Simulation" : Open the simulation tab.
     - "Display number of turns" : When on, will display the number of current turns in the simulation on the bottom middle of the screen.
@@ -105,6 +116,7 @@ Settings menu : click on the tabs to open them
       Ex: If it goes too far to the left, will appear to the right of the screen. Same for top and bottom.
       Incompatible with "Entities stay on screen".
     - "Quantity is on percent" : When on, will show the amount of each type of entity in percent. When off, show it in number.
+    - "Sheldon version" : Use Sheldon version of RPS (with Lizard & Spock).
     - "UI is on front" : When on, display the interface above entities. When off, display it behind.
     - "UI is hide" : When on, won't show the interface.
     - "Auto end" : When on, simulation will close if only one type of entity remains. Will display a message when it's the case.
@@ -215,14 +227,14 @@ Saves menu :
       Added a tab in the save menu and changed the format of saved screenshots (png to gif: take less place)
 - v0.1.4 :
 	- Add possibility to add more entity type : Add the Sheldon rps with Spock and Lizard.
-- v0.1.5 :  [In production]
+- v0.1.5 :  [Tutorials are skip for now]
 	- Add tutorial : Add tutorial for first launch to teach user all features.
 	- Add gamma : Make gamma work.
 	- Finish other small tasks : Fix small details or bugs.
-- v0.9.9 : [Later]
+- v0.9.9 : [Later but partially exists]
 	- Make documentations : Create a full documentation for the whole project.
 	- Complete functions description : Add a commentary with the purpose, args description and args type of each function.
-- v1.0.0 : [Later]
+- v1.0.0 : [In production]
 	- Make the code into a .exe : Will be easier to install and launch (hopefully python interpreter won't be needed anymore).
 
 ***
