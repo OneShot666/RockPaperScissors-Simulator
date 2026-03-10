@@ -20,12 +20,12 @@ class Database:                                                                 
         self.HELP_FORMAT =      ".txt"                                          # Format for help text files
         self.LOG_FORMAT =       ".md"                                           # Format for log files
         # File data
-        self.FILES = ("data", "data/texts", "images", "images/entity",
-            "images/graphics", "logs", "musics", "saves", "sounds")             # All files to create at first launch
+        self.FILES = ("data", "data/texts", "img", "img/entity",
+            "img/graphics", "logs", "musics", "saves", "sounds")             # All files to create at first launch
         self.PATH: Path =               Path.cwd()                              # Current programm path
         self.PATH_DATA: Path =          Path(self.PATH) / "data"                # Datas path
         self.PATH_TEXT: Path =          Path(self.PATH_DATA) / "texts"          # Texts path
-        self.PATH_IMAGE: Path =         Path(self.PATH) / "images"              # Images path
+        self.PATH_IMAGE: Path =         Path(self.PATH) / "img"              # Images path
         self.PATH_ICON_ENTITY: Path =   Path(self.PATH_IMAGE) / "entity"        # Icons of entities path
         self.PATH_ICON_GRAPHIC: Path =  Path(self.PATH_IMAGE) / "graphics"      # Icons of graphics path
         self.PATH_LOG: Path =           Path(self.PATH) / "logs"                # Logs path (for saves)

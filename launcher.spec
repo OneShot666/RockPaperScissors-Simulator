@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['C:/Middle school/Matieres 12 024/Python 12 024/RockPaperScissors Simulator/launcher.py'],
+    ['launcher.py'],
     pathex=[],
     binaries=[],
     datas=[],
@@ -35,5 +35,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['C:\\Middle school\\Matieres 12 024\\Python 12 024\\RockPaperScissors Simulator\\images\\icon.ico'],
+    icon=['img\\icon.ico'],
 )
