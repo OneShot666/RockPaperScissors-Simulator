@@ -4,7 +4,7 @@ A simulation about the game 'Rock Paper Scissors'.
 You can bet with your friends who will win the eternal battle between those 3 objects !
 Or you can use this program as a real agent-based modeling and personalize your simulation.
 
-![Menu](images/screenshots/main_menu.png)
+![Menu](img/screenshots/main_menu.png)
 
 ***
 ## Vocabulary : 
@@ -71,12 +71,12 @@ Main menu :
 - [H]       "Hide/Show UI" : Will hide or show interfaces.
 - [I]       "Informations" (question mark icon) : Open the help note menu.
 - [P]       "Options/Parameters" (toothed wheel icon) : Open the settings menu.
-  ![Parameters - Entities](images/screenshots/parameters_entities.png)
+  ![Parameters - Entities](img/screenshots/parameters_entities.png)
 - [C]       "Credits" : Open the credit menu. Can be closed by clicking or pressing any key.
 
 Simulation : 
 - [H]       "Hide/Show UI" (parameter) : Will hide or show interfaces.
-![Game (without UI)](images/screenshots/game_hidden_UI.png)
+![Game (without UI)](img/screenshots/game_hidden_UI.png)
 - [R]       "Restart" : Will launch another simulation.
 - [SPACE]   "Pause" : Pause simulation and show the pause screen. 
 - [S]       "Save menu" (floppy disk icon) : Open the saves menu.
@@ -88,7 +88,7 @@ Simulation :
 
 [ECHAP] shortcut has been removed since v0.1.4 !
 
-![Entity infos](images/screenshots/entity_infos.png)
+![Entity infos](img/screenshots/entity_infos.png)
 
 Pause : 
 - "Resume" : Resume the simulation.
@@ -120,7 +120,7 @@ Settings menu : click on the tabs to open them
     - "UI is on front" : When on, display the interface above entities. When off, display it behind.
     - "UI is hide" : When on, won't show the interface.
     - "Auto end" : When on, simulation will close if only one type of entity remains. Will display a message when it's the case.
-![Game (end)](images/screenshots/game_end.png)
+![Game (end)](img/screenshots/game_end.png)
     - "Auto play" : When on, on the saves menu on the simulation tab, will show each image of each turn for a second each (play as a gif).
     - "Auto save" : [In production] When on, will automatically save the current simulation when going back to the main menu.
 
@@ -141,7 +141,7 @@ Settings menu : click on the tabs to open them
         - "Mutation chance" : The chance for each entity to mutate each turn. Between 0 and 100.
 
 - "Sounds" : Open the sound tab
-![Parameters - Sounds](images/screenshots/parameters_sounds.png)
+![Parameters - Sounds](img/screenshots/parameters_sounds.png)
     Display last played sound and current music name in lightgrey.
     - "Sounds" : Sound volume.  Between 0 and 100.
     - "Mute all sounds" : Will restart the sound manager and stop all playing sound. Click on it if a sound problem occurs.
@@ -151,7 +151,7 @@ Settings menu : click on the tabs to open them
 
 Saves menu : 
 - "Simulations" : Open the simulation tab.
-![Saves - Simulation](images/screenshots/saves_simulation.png)
+![Saves - Simulation](img/screenshots/saves_simulation.png)
     Display the first turn of the first simulation if there is any. Show a transparent message if not.
     - "Previous sim" : Show the previous simulation if there is any.
     - "Next sim" : Show the next simulation if there is any.
@@ -160,7 +160,7 @@ Saves menu :
     - "Save all (X)" : Save all simulations' images as gif and data in a save.
 
 - "Graphics" : Open the graphic tab.
-![Saves - Graphics](images/screenshots/saves_graphics.png)
+![Saves - Graphics](img/screenshots/saves_graphics.png)
     Display the selected graphic if at least one simulation was launch. Show a transparent message if not.
     - "Number of entity every second" : Line plot graphic which show the amount of entity every second during the current simulation.
     - "Average options evolution" : Line plot graphic which show the average value of an option each turn.
@@ -182,7 +182,7 @@ Saves menu :
 ***
 ## Roadmap
 
-![Game](images/screenshots/game.png)
+![Game](img/screenshots/game.png)
 
 - v0.0.1 :
 	- Basic functions
@@ -202,7 +202,7 @@ Saves menu :
 	- Make simulation personalized in game (add parameters)
 - v0.0.8 :
 	- Add pause screen
-![Pause](images/screenshots/pause.png)
+![Pause](img/screenshots/pause.png)
  	- Add key shortcuts
   	- Make entity with no target flee enemy (add smartness)
 - v0.0.9 :
@@ -220,7 +220,7 @@ Saves menu :
 	- Add graphics : Adding graphics to help understand the simulation's evolution.
       Graphics are now saved when saving simulations.
 	- Saves result : Create a save with most of the simulation data
-![Saves - Saves](images/screenshots/saves_saves.png)
+![Saves - Saves](img/screenshots/saves_saves.png)
 	- Create datamanager : Added a class specialized for above features.
 	- Add save menu : Added a menu to display all saves and graphics.
 	- Take screenshots each turn : To have a visual aspect of the evolution during the simulation.
