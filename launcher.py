@@ -29,11 +29,11 @@ import pygame
 # [v0.1.2] Add sounds + chill music + mutation option (can change type randomly) -> create soundmanager class
 # [v0.1.3] Add graphics + saves result + save menu → create datamanager class (+ take screenshots each turn)
 # [v0.1.4] Add possibility to add more entity type (Sheldon rps) -> add Sheldon parameter
-# [v0.1.5] Add gamma + remove Echap shortcut + finish 'quests' comments
-# . [v0.1.6] Upgrade smart entity moves + upgrade fullscreen method (dynamic + adapt to screen size) [change_fullscreen()]
-# . [v0.1.7] Upgrade flee method → Entities movements are weird because of furthest point ? [entity.py]
-# . [v0.1.8] Makes tutorial to show how the program works + add button to play it again
-# ... [v0.9.9] Making documentations and complete functions description (purpose, args descr, args type)
+# [v0.1.5] Add gamma + remove Echap shortcut + finish 'quests' comments -> '# ! '
+# ... [v0.1.6] Upgrade smart entity moves + upgrade fullscreen method -> native pygame methods
+# [v0.1.7] Upgrade flee method → simplified calculations in entity.py
+# ! [v0.1.8] Makes tutorial to show how the program works + add button to play it again in parameters
+# . [v0.9.9] Making documentations and complete functions description (purpose, args descr, args type)
 # . [v1.0.0] Make the code into a .exe → create executioner class
 class RPSSimulator:                                                             # Main class
     def __init__(self, name=None):
@@ -41,7 +41,7 @@ class RPSSimulator:                                                             
         self.name = self.get_project_name(name)                                 # Get name of the program
         self.creator = "One Shot"
         self.studio = "Ouroboros games"
-        self.version = "v0.1.2"
+        self.version = "v0.1.5"
         self.birthday: str = None                                               # Day of creation (15/10/2024)
         # Initializers
         pygame.init()
@@ -71,9 +71,10 @@ class RPSSimulator:                                                             
         self.path_image =   db.PATH_IMAGE
         self.Files =        db.FILES
         # Window data
-        self.screen =       db.SCREEN
-        self.full_size =    db.FULL_SIZE
-        self.screen_size =  db.SCREEN_SIZE
+        self.screen =           db.SCREEN
+        self.full_size =        db.FULL_SIZE
+        self.windowed_size =    db.WINDOWED_SIZE
+        self.screen_size =      db.SCREEN_SIZE
         pygame.display.set_caption(self.name)                                   # Give window a title
         pygame.display.set_icon(db.ENTITYIMAGES[db.BASENAMES[2]])               # Give window an icon
         # Gamma data
@@ -262,6 +263,10 @@ class RPSSimulator:                                                             
                         self.scroll_speed = 1                                   # Reset speed
 
             if event.type == pygame.KEYDOWN:                                    # Keyboard pressed
+                if event.key == pygame.K_F11:
+                    self.is_fullscreen = not self.is_fullscreen
+                    self.change_fullscreen()
+
                 if self.crediting and event.key not in [pygame.K_UP, pygame.K_DOWN]:
                     self.close_credits()
 
@@ -813,11 +818,10 @@ class RPSSimulator:                                                             
 
     def change_fullscreen(self):
         if self.is_fullscreen:
-            self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-            self.screen_size = self.screen.get_size()
+            self.screen = pygame.display.set_mode(self.full_size, pygame.FULLSCREEN)
         else:
-            self.screen = pygame.display.set_mode((self.full_size[0] // 2, self.full_size[1] // 2))
-            self.screen_size = self.screen.get_size()
+            self.screen = pygame.display.set_mode(self.windowed_size, pygame.RESIZABLE)
+        self.screen_size = self.screen.get_size()
 
     def display_tab_sim_screen(self):                                           # Display simulation screen
         trio = (self.screen, self.mouse, self.left_click)

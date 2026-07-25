@@ -151,7 +151,7 @@ class EntityManager:
             if self.is_follow_mouse and entity.name == self.entity_to_follow_mouse:
                 entity.move_to_coords(mouse)                                    # Make entity follow mouse
             else:                                                               # Default movement
-                entity.move(self.Entities, screen_size, is_map_borders, is_infinity_map, self.is_entity_range)
+                entity.move(self.Entities, screen_size, is_infinity_map, self.is_entity_range)
 
             if is_map_borders:                                                  # Borders parameters
                 self.keep_entity_on_screen(entity)

@@ -31,8 +31,9 @@ class Entity:                                                                   
 
     # [Unused] Print infos about entity
     def __repr__(self):
-        return (f"{self.name.capitalize()} [{int(self.coords[0])}, {int(self.coords[0])}] "
-                f"(target: {self.Targets}, predator: {self.Predators}), {self.behaviour}")
+        return (f"{self.name.capitalize()} [{int(self.coords[0])}, {int(self.coords[1])}] "
+                f"(target: {self.Targets}{f'({self.target.id})' if self.target else ''}, "
+                f"predator: {self.Predators}{f'({self.predator.id})' if self.predator else ''}), {self.behaviour}")
 
     def get_image(self, image: Optional[pygame.Surface] = None) -> pygame.Surface:  # Set image based on name
         if image is None:
@@ -45,22 +46,25 @@ class Entity:                                                                   
     def get_predators(self) -> list[str]:                                       # Get name of predators based on own name
         return [e for e, targets in self.Predatory.items() if self.name in targets]
 
-    # ? Change code and use rect.center for get_distance
-    def get_distance(self, point1, point2, screen_size=None) -> float:          # Calculate distance between two points
-        screen_size = None if not self.is_smart else screen_size
-        dx = min(abs(point2[0] - point1[0]), screen_size[0] - abs(point2[0] - point1[0])) \
-            if screen_size else point2[0] - point1[0]
-        dy = min(abs(point2[1] - point1[1]), screen_size[1] - abs(point2[1] - point1[1])) \
-            if screen_size else point2[1] - point1[1]
+    def get_distance(self, point1, point2, screen_size=None, is_infinity_map=False) -> float:
+        """ Calculate distance between two points """
+        dx = point2[0] - point1[0]
+        dy = point2[1] - point1[1]
+        if self.is_smart and screen_size and is_infinity_map:
+            w, h = screen_size
+            dx = (dx + w / 2) % w - w / 2
+            dy = (dy + h / 2) % h - h / 2
         return sqrt(dx ** 2 + dy ** 2)
 
-    # ? Same as get_distance (if so, make get_distance dumb, maybe ?)
-    @staticmethod
-    def get_toroidal_distance(point1, point2, screen_size) -> float:            # Like get_distance in toroidal map
-        dx = abs(point1[0] - point2[0])
-        dy = abs(point1[1] - point2[1])
-        return sqrt(dx ** 2 + dy ** 2) if screen_size is None else (
-            sqrt(min(dx, screen_size[0] - dx) ** 2 + min(dy, screen_size[1] - dy) ** 2))
+    def get_vectors_and_distance(self, target_coords, screen_size, is_infinity_map=False) -> [float, float, float]:
+        """ Similar to get_distance() but only for target and also give directions in result """
+        dx = target_coords[0] - self.coords[0]
+        dy = target_coords[1] - self.coords[1]
+        if self.is_smart and screen_size and is_infinity_map:
+            w, h = screen_size
+            dx = (dx + w / 2) % w - w / 2
+            dy = (dy + h / 2) % h - h / 2
+        return dx, dy, sqrt(dx ** 2 + dy ** 2)
 
     # Only use for toroidal map to flee predator
     def get_farthest_point(self, screen_size: list[int]):                  # Calculate the farthest point on screen (for self)
@@ -86,143 +90,94 @@ class Entity:                                                                   
     def does_collide_with_entity(self, entity: "Entity") -> bool:               # Check if self collide with an entity
         return self.get_distance(self.coords, entity.coords) <= self.size
 
-    def set_target(self, new_target: "Entity"):                                 # Change value of target
+    def set_target(self, new_target: Optional["Entity"]):                       # Change value of target
         self.target = new_target
 
-    def set_predator(self, new_predator: "Entity"):                             # Change value of predator
+    def set_predator(self, new_predator: Optional["Entity"]):                   # Change value of predator
         self.predator = new_predator
 
-    def look_for_closest_target(self, Entities, screen_size=None, is_range=False):  # Search for the closest target
-        target = min((entity for entity in Entities if entity.name in self.Targets),
-            key=lambda e: self.get_distance(self.coords, e.coords, screen_size), default=None)
+    def look_for_closest_target(self, Entities, screen_size=None, is_range=False, is_infinity_map=False):
+        """ Search for the closest target """
+        PotentialTargets = [e for e in Entities if e.name in self.Targets and e != self]
 
-        distance = self.get_distance(self.coords, target.coords, screen_size) \
-            if target else inf
+        if not PotentialTargets:
+            self.set_target(None)
+            return
 
-        if is_range:
-            if distance <= self.range:
-                self.set_target(target)
-            else:
-                self.set_target(None)
-        elif target != self:
-            self.set_target(target)
+        target = min(PotentialTargets, key=lambda e: self.get_distance(self.coords, e.coords, screen_size, is_infinity_map))
+        distance = self.get_distance(self.coords, target.coords, screen_size, is_infinity_map)
 
-    def look_for_closest_predator(self, Entities, screen_size=None, is_range=False):    # Search for the closest predator
-        predator = min((entity for entity in Entities if entity.name in self.Predators),
-            key=lambda e: self.get_distance(self.coords, e.coords, screen_size), default=None)
+        if is_range and distance > self.range: self.set_target(None)
+        else: self.set_target(target)
 
-        distance = self.get_distance(self.coords, predator.coords, screen_size) \
-            if predator else inf
+    def look_for_closest_predator(self, Entities, screen_size=None, is_range=False, is_infinity_map=False):
+        """ Search for the closest predator """
+        PotentialPredators = [e for e in Entities if e.name in self.Predators and e != self]
 
-        if is_range:
-            if distance <= self.range:
-                self.set_predator(predator)
-            else:
-                self.set_predator(None)
-        elif predator != self:
-            self.set_predator(predator)
+        if not PotentialPredators:
+            self.set_predator(None)
+            return
 
-    # Move to closest target if there is any
-    def chase_target(self, screen_size: list[int], is_map_borders=False, is_infinity_map=False):
-        self.move_to_coords(self.target.coords, screen_size, is_map_borders, is_infinity_map)
+        predator = min(PotentialPredators, key=lambda e: self.get_distance(self.coords, e.coords, screen_size, is_infinity_map))
+        distance = self.get_distance(self.coords, predator.coords, screen_size, is_infinity_map)
+
+        if is_range and distance > self.range: self.set_predator(None)
+        else: self.set_predator(predator)
+
+    def chase_target(self, screen_size: list[int], is_infinity_map=False):
+        """ Move to closest target if there is any """
+        self.move_to_coords(self.target.coords, screen_size, is_infinity_map)
         self.behaviour = f"Chasing target ({self.target.id})"
 
-    # Move to opposite direction of closest predator
-    def flee_predator(self, screen_size: Optional[list[int]],
-            is_map_borders=False, is_infinity_map=False):
-        self.move_to_reverse_coords(self.predator.coords, screen_size, is_map_borders, is_infinity_map)
+    def flee_predator(self, screen_size: Optional[list[int]], is_infinity_map=False):
+        """ Move to opposite direction of closest predator """
+        self.move_to_reverse_coords(self.predator.coords, screen_size, is_infinity_map)
         self.behaviour = f"Fleeing predator ({self.predator.id})"
 
     # Look for shorter way to target (using map borders and inf map to its advantage)
-    # [later] Will separate in two groups to take targets in sandwich -> make EntityManager class ?
-    # [later] Group will form a line to stuck target in a corner when map has borders
-    def move_smart(self, Entities, screen_size: Optional[list[int]],
-            is_map_borders=False, is_infinity_map=False):
-        testing = False
-        if testing:
-            print("Moving start :", end=" ")                                    # !!!
-        if self.target and self.target.coords[0] is not None:                   # At least one target
-            if testing:
-                print("Chase target condition", end=" ")                       # !!!
-            if is_map_borders:                                                  # ! Not opti
-                self.chase_target(screen_size, is_map_borders, is_infinity_map)
-                if testing:
-                    print("1", end=", ")                                        # !!!
-            elif is_infinity_map:                                               # ! Not opti
-                self.chase_target(screen_size, is_map_borders, is_infinity_map)
-                if testing:
-                    print("2", end=", ")                                        # !!!
-            else:
-                self.chase_target(screen_size, is_map_borders, is_infinity_map)
-                if testing:
-                    print("3", end=", ")                                        # !!!
-        elif self.predator and self.predator.coords[0] is not None:             # At least one predator
-            if testing:
-                print("Flee predator condition ", end=" ")                      # !!!
-            if is_map_borders:                                                  # ! Not opti
-                self.flee_predator(screen_size, is_map_borders, is_infinity_map)
-                if testing:
-                    print("1", end=", ")                                        # !!!
-            elif is_infinity_map:
-                coords = self.get_farthest_point(screen_size)
-                self.move_to_coords(coords, screen_size, is_map_borders, is_infinity_map)
-                self.behaviour = f"Fleeing predator ({self.predator.id})"
-                if testing:
-                    print("2", end=", ")                                        # !!!
-            else:
-                self.flee_predator(screen_size, is_map_borders, is_infinity_map)
-                if testing:
-                    print("3", end=", ")                                        # !!!
+    # [later] Will separate in two groups to take targets in sandwich
+    # [later] Group will form a line to stuck target in a corner if map has borders
+    def move_smart(self, Entities, screen_size: Optional[list[int]], is_infinity_map=False):
+        if self.predator:
+            self.flee_predator(screen_size, is_infinity_map)
+        elif self.target:
+            self.chase_target(screen_size, is_infinity_map)
         else:
-            self.move_randomly(3)                                               # Move faster if smart (why ? -> because)
-        if testing:
-            print("end")                                                        # !!!
+            self.move_randomly(2)                                               # Move faster if smart (why ? -> because)
 
     # Manager movements of entity
-    def move(self, Entities, screen_size=None, is_map_borders=False, is_infinity_map=False, is_range=False):
-        if self.target is None:
-            self.look_for_closest_target(Entities, screen_size, is_range)
-        if self.predator is None:
-            self.look_for_closest_predator(Entities, screen_size, is_range)
+    def move(self, Entities, screen_size=None, is_infinity_map=False, is_range=False):
+        self.look_for_closest_target(Entities, screen_size, is_range, is_infinity_map)
+        self.look_for_closest_predator(Entities, screen_size, is_range, is_infinity_map)
 
         if self.is_smart:
-            self.move_smart(Entities, screen_size, is_map_borders, is_infinity_map)
-        elif self.target is None:                                               # If even here, no target was found
+            self.move_smart(Entities, screen_size, is_infinity_map)
+        elif self.target:
+            self.chase_target(screen_size, is_infinity_map)
+        else:                                                                   # If even here, no target was found
             self.move_randomly()
-        else:
-            self.chase_target(screen_size, is_map_borders, is_infinity_map)
 
-    def move_to_coords(self, coords, screen_size=None, is_map_borders=False, is_infinity_map=False):    # Go to point
-        if self.is_smart and is_infinity_map:
-            distance = self.get_toroidal_distance(self.coords, coords, screen_size)
-        else:
-            distance = self.get_distance(self.coords, coords, screen_size)
-        dir_x = coords[0] - self.coords[0]
-        dir_y = coords[1] - self.coords[1]
+    def move_to_coords(self, coords, screen_size=None, is_infinity_map=False):    # Go to point
+        dx, dy, distance = self.get_vectors_and_distance(coords, screen_size, is_infinity_map)
 
         if distance >= self.size:
-            self.coords[0] += (dir_x / distance) * self.speed
-            self.coords[1] += (dir_y / distance) * self.speed
+            self.coords[0] += (dx / distance) * self.speed
+            self.coords[1] += (dy / distance) * self.speed
 
     # Go to opposite direction compare to coords
-    def move_to_reverse_coords(self, coords, screen_size=None, is_map_borders=False, is_infinity_map=False):
-        if self.is_smart and is_infinity_map:
-            distance = self.get_toroidal_distance(self.coords, coords, screen_size)
-        else:
-            distance = self.get_distance(self.coords, coords, screen_size)
-        dir_x = coords[0] - self.coords[0]
-        dir_y = coords[1] - self.coords[1]
+    def move_to_reverse_coords(self, coords, screen_size=None, is_infinity_map=False):
+        dx, dy, distance = self.get_vectors_and_distance(coords, screen_size, is_infinity_map)
 
         if distance >= self.size:
-            self.coords[0] -= (dir_x / distance) * self.speed
-            self.coords[1] -= (dir_y / distance) * self.speed
+            self.coords[0] -= (dx / distance) * self.speed
+            self.coords[1] -= (dy / distance) * self.speed
 
-    def move_randomly(self, boost_mult=2):
+    def move_randomly(self, boost_mult=1):
         self.coords[0] += randint(-1, 1) * self.speed * boost_mult
         self.coords[1] += randint(-1, 1) * self.speed * boost_mult
         self.behaviour = "Moving randomly"
 
-    def change_type(self, name: str = None):                                    # Change type of entity (when beaten)
+    def change_type(self, name: Optional[str] = None):                          # Change type of entity (when beaten)
         self.name = name if name else choice(self.get_predators())              # Before predators are updated
         self.image = self.get_image()
         self.Predators = self.get_predators()

@@ -8,9 +8,11 @@ import os
 class Database:                                                                 # Shared items everywhere in the program
     def __init__(self):
         # Screen data
-        self.SCREEN =       pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-        self.FULL_SIZE =    (pygame.display.Info().current_w, pygame.display.Info().current_h)
-        self.SCREEN_SIZE =  self.SCREEN.get_size()                              # Full screen by default
+        self.FULL_SIZE =        (pygame.display.Info().current_w, pygame.display.Info().current_h)
+        self.SCREEN_SIZE =      self.FULL_SIZE                                  # Full screen by default
+        self.WINDOWED_SIZE =    (int(self.SCREEN_SIZE[0] * 0.8), int(self.SCREEN_SIZE[1] * 0.8))
+        self.virtual_surface =  pygame.Surface(self.SCREEN_SIZE)
+        self.SCREEN =           pygame.display.set_mode(self.SCREEN_SIZE, pygame.FULLSCREEN)
         # Format data
         self.DATE_FORMAT =      "%d-%m-%Y"                                      # Today's date: dd-mm-yyyy
         self.SAVE_FORMAT =      ".json"                                         # Format for save files
